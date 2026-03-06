@@ -141,6 +141,16 @@ const ZenithAuth = {
         this.session = null;
         this.user = null;
 
+        // Reset memory state to defaults
+        if (window.ZenithData) {
+            ZenithData.user = {
+                id: null, name: 'User', email: '', avatar: 'U',
+                totalSessions: 0, totalMinutesPracticed: 0, currentStreak: 0,
+                moodHistory: [], sleepHistory: [0, 0, 0, 0, 0, 0, 0],
+                sessionHistory: [0, 0, 0, 0, 0, 0, 0], completedSessions: []
+            };
+        }
+
         // Clear all local state
         if (window.ZenithState) {
             clearInterval(ZenithState.playerTimer);
@@ -247,28 +257,83 @@ const ZenithAuth = {
     },
 
     async _loadProfile(userId) {
-        const { data, error } = await window.ZenithSupabase
+        // 1. Load basic profile and stats
+        const { data: profile, error: pError } = await window.ZenithSupabase
             .from('user_profiles')
             .select('*')
             .eq('id', userId)
             .single();
 
-        if (error) {
-            console.warn('✦ Zenith Auth: Could not load profile:', error.message);
+        if (pError) {
+            console.warn('✦ Zenith Auth: Could not load profile:', pError.message);
             return;
         }
 
-        if (data && window.ZenithData) {
-            // Merge DB profile into the in-memory user object
-            ZenithData.user.id = data.id;
-            ZenithData.user.name = data.name || ZenithData.user.name;
-            ZenithData.user.email = data.email || ZenithData.user.email;
-            ZenithData.user.wellnessGoal = data.wellness_goal || ZenithData.user.wellnessGoal;
-            ZenithData.user.experienceLevel = data.experience_level || ZenithData.user.experienceLevel;
-            ZenithData.user.programType = data.program_type || ZenithData.user.programType;
-            ZenithData.user.organization = data.organization || ZenithData.user.organization;
-            ZenithData.user.avatar = (data.name || 'U')[0].toUpperCase();
-            console.log('✦ Zenith Auth: Profile loaded from DB.');
+        // 2. Load recent mood history (last 7 days/entries)
+        const { data: moods } = await window.ZenithSupabase
+            .from('mood_entries')
+            .select('*')
+            .eq('user_id', userId)
+            .order('timestamp', { ascending: false })
+            .limit(10);
+
+        // 3. Load recently completed sessions for history dots
+        const { data: sessions } = await window.ZenithSupabase
+            .from('session_records')
+            .select('session_id, completed, started_at')
+            .eq('user_id', userId)
+            .eq('completed', true)
+            .order('started_at', { ascending: false })
+            .limit(50);
+
+        if (profile && window.ZenithData) {
+            const u = ZenithData.user;
+
+            // Basic Info
+            u.id = profile.id;
+            u.name = profile.name || u.name;
+            u.email = profile.email || u.email;
+            u.avatar = (profile.name || 'U')[0].toUpperCase();
+
+            // Stats from DB
+            u.totalSessions = profile.total_sessions || 0;
+            u.totalMinutesPracticed = profile.total_minutes || 0;
+            u.currentStreak = profile.current_streak || 0;
+            u.longestStreak = profile.longest_streak || 0;
+
+            // Preferences
+            u.wellnessGoal = profile.wellness_goal || 'stress';
+            u.experienceLevel = profile.experience_level || 'Beginner';
+            u.programType = profile.program_type || 7;
+            u.organization = profile.organization || null;
+
+            // Map Moods
+            if (moods) {
+                u.moodHistory = moods.map(m => ({
+                    date: m.timestamp.split('T')[0],
+                    pre: m.pre_rating,
+                    post: m.post_rating,
+                    tags: m.tags || []
+                })).reverse();
+            }
+
+            // Map Completed Sessions
+            if (sessions) {
+                u.completedSessions = [...new Set(sessions.map(s => s.session_id))];
+
+                // Aggregate for the 7-day sparkline
+                const history = [0, 0, 0, 0, 0, 0, 0];
+                const now = new Date();
+                sessions.forEach(s => {
+                    const daysAgo = Math.floor((now - new Date(s.started_at)) / (1000 * 60 * 60 * 24));
+                    if (daysAgo >= 0 && daysAgo < 7) {
+                        history[6 - daysAgo]++;
+                    }
+                });
+                u.sessionHistory = history;
+            }
+
+            console.log('✦ Zenith Auth: Production profile loaded for', u.name);
         }
     },
 

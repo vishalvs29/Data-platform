@@ -11,7 +11,16 @@
     });
 
     // Set up navigation event listeners
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Show loading state
+        const app = document.getElementById('app');
+        app.classList.add('loading-auth');
+
+        // Initialize Auth and wait for profile sync
+        if (window.ZenithAuth) {
+            await ZenithAuth.init();
+        }
+
         // Bottom nav click handlers
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
@@ -30,7 +39,8 @@
         // Add ambient particles
         createAmbientParticles();
 
-        // Initial render
+        // Remove loading state and Initial render
+        app.classList.remove('loading-auth');
         ZenithRouter.render();
 
         // Add smooth transition class to body

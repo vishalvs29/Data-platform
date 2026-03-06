@@ -435,53 +435,45 @@ const ZenithData = {
         }
     ],
 
-    // ── User Profile (Simulated) ──
+    // ── User Profile (Initialized from Auth/DB) ──
     user: {
-        id: '22222222-2222-2222-2222-222222222222', // Fixed UUID for demo user Alex
-        name: 'Alex',
-        email: 'alex.demo@onspace.ai',
-        age: 34,
-        gender: 'Non-binary',
-        wellnessGoal: 'stress', // stress, confidence, sleep, focus, healing
-        experienceLevel: 'Intermediate', // Beginner, Intermediate, Advanced
-        preferredSessionTime: '08:30',
-        programType: 7, // 7, 21, 30 days
-        role: 'Senior Program Director',
-        organization: 'Federal Agency',
-        organizationType: 'Government',
-        avatar: 'A',
-        joinDate: '2025-10-15',
-        totalSessions: 124,
-        totalMinutesPracticed: 1840,
-        currentStreak: 12,
-        longestStreak: 28,
+        id: null,
+        name: 'User',
+        email: '',
+        age: null,
+        gender: null,
+        wellnessGoal: 'stress',
+        experienceLevel: 'Beginner',
+        preferredSessionTime: null,
+        programType: 7,
+        role: 'member',
+        organization: null,
+        organizationType: null,
+        avatar: 'U',
+        joinDate: new Date().toISOString().split('T')[0],
+        totalSessions: 0,
+        totalMinutesPracticed: 0,
+        currentStreak: 0,
+        longestStreak: 0,
         weeklyGoal: 5,
-        weeklyCompleted: 3,
+        weeklyCompleted: 0,
         currentMood: null,
-        stressLevel: 6, // 1-10
-        sleepQuality: 5, // 1-10
-        burnoutScore: 35, // 0-100
-        calendarLoad: 'heavy', // light, moderate, heavy
+        stressLevel: 5,
+        sleepQuality: 5,
+        burnoutScore: 0,
+        calendarLoad: 'moderate',
 
-        // Extended Mood History (Pre/Post ratings and tags)
-        moodHistory: [
-            { date: '2026-02-23', pre: 3, post: 4, tags: ['tired', 'calm'], emotion: 'neutral' },
-            { date: '2026-02-24', pre: 2, post: 4, tags: ['anxious', 'motivated'], emotion: 'stressed' },
-            { date: '2026-02-25', pre: 4, post: 5, tags: ['grateful', 'calm'], emotion: 'content' },
-            { date: '2026-02-26', pre: 3, post: 4, tags: ['focused', 'calm'], emotion: 'focused' },
-            { date: '2026-02-27', pre: 2, post: 3, tags: ['tired', 'neutral'], emotion: 'tired' },
-            { date: '2026-02-28', pre: 4, post: 5, tags: ['motivated', 'expanded'], emotion: 'happy' },
-            { date: '2026-03-01', pre: 3, post: 4, tags: ['calm', 'ready'], emotion: 'peaceful' }
-        ],
+        // Mood History (Fetched from DB)
+        moodHistory: [],
 
-        // Sleep quality history (7 days)
-        sleepHistory: [6, 5, 4, 5, 7, 4, 6],
+        // Sleep history (7 days)
+        sleepHistory: [0, 0, 0, 0, 0, 0, 0],
 
-        // Session completion history (last 7 days)
-        sessionHistory: [2, 1, 3, 0, 2, 1, 2],
+        // Session history (last 7 days)
+        sessionHistory: [0, 0, 0, 0, 0, 0, 0],
 
         // Completed session IDs
-        completedSessions: ['s5-1', 's10-1', 's10-3', 's15-2', 's21-1', 's5-2', 's30-1', 's45-2']
+        completedSessions: []
     },
 
     // ── Achievement Definitions ──
