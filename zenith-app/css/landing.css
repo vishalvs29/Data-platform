@@ -1,0 +1,270 @@
+/* ============================================================
+   ZENITH LANDING PAGE STYLES
+   Premium, High-Trust Visuals for Corporate/Government
+   ============================================================ */
+
+@import url('design-system.css');
+
+:root {
+    --landing-hero-bg: #05070a;
+}
+
+body.landing-page {
+    background: var(--landing-hero-bg);
+    overflow-x: hidden;
+}
+
+/* ── Navigation ── */
+.landing-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 5%;
+    background: rgba(10, 14, 23, 0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 1000;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+
+.nav-logo .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--gradient-accent);
+    border-radius: 8px;
+    box-shadow: var(--shadow-glow);
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+
+.nav-link {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.3s;
+    cursor: pointer;
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+}
+
+.nav-cta {
+    padding: 10px 24px;
+    background: var(--bg-glass);
+    border: 1px solid rgba(20, 184, 166, 0.3);
+    border-radius: var(--radius-full);
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.nav-cta:hover {
+    background: var(--gradient-accent);
+    color: #fff;
+    box-shadow: var(--shadow-glow);
+}
+
+/* ── Hero Section ── */
+.hero {
+    position: relative;
+    padding: 180px 5% 100px;
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(circle at 50% 30%, rgba(20, 184, 166, 0.08) 0%, transparent 60%);
+}
+
+.hero-visual {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 1200px;
+    opacity: 0.4;
+    filter: blur(60px);
+    z-index: -1;
+    pointer-events: none;
+}
+
+.hero h1 {
+    font-family: var(--font-serif);
+    font-size: Clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #fff 40%, rgba(255, 255, 255, 0.4));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    max-width: 900px;
+}
+
+.hero p {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 650px;
+    margin-bottom: 48px;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 20px;
+}
+
+.btn-primary {
+    padding: 16px 40px;
+    background: var(--gradient-accent);
+    color: #fff;
+    border-radius: var(--radius-full);
+    font-size: 1.1rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-glow-lg);
+    transition: transform 0.3s;
+}
+
+.btn-secondary {
+    padding: 16px 40px;
+    background: var(--bg-glass);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-radius: var(--radius-full);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover {
+    transform: translateY(-2px);
+}
+
+/* ── Trust Ribbon ── */
+.trust-ribbon {
+    padding: 60px 5%;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: center;
+}
+
+.trust-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    font-weight: 600;
+}
+
+.logo-grid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 60px;
+    opacity: 0.5;
+    filter: grayscale(1);
+    flex-wrap: wrap;
+}
+
+.logo-item {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+
+/* ── Pillars ── */
+.pillar-section {
+    padding: 120px 5%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.pillar-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-xl);
+    padding: 40px;
+    transition: all 0.4s ease;
+}
+
+.pillar-card:hover {
+    border-color: rgba(20, 184, 166, 0.3);
+    transform: translateY(-8px);
+    background: linear-gradient(180deg, rgba(20, 184, 166, 0.05) 0%, transparent 100%);
+}
+
+.pillar-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(20, 184, 166, 0.1);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    color: var(--accent);
+}
+
+.pillar-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+}
+
+.pillar-card p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-size: 1rem;
+}
+
+/* ── Mobile Optimization ── */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+    }
+
+    .hero {
+        padding-top: 140px;
+    }
+
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        width: 100%;
+        max-width: 320px;
+    }
+
+    .logo-grid {
+        gap: 30px;
+    }
+}

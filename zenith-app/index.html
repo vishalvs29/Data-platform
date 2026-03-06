@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description"
+        content="Zenith — Enterprise mental health and wellness for corporate professionals. Science-backed audio sessions for stress, anxiety, sleep, and burnout.">
+    <meta name="theme-color" content="#0a0e17">
+    <title>Zenith — Premium Wellness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/design-system.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- App content rendered by JS -->
+        <div id="page-container"></div>
+        <!-- Bottom Navigation -->
+        <nav id="bottom-nav" class="bottom-nav">
+            <button class="nav-item active" data-page="home" id="nav-home">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <span>Home</span>
+            </button>
+            <button class="nav-item" data-page="explore" id="nav-explore">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <span>Explore</span>
+            </button>
+            <button class="nav-item calm-now-btn" data-page="calm" id="nav-calm">
+                <div class="calm-now-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                    </svg>
+                </div>
+                <span>Calm Now</span>
+            </button>
+            <button class="nav-item" data-page="insights" id="nav-insights">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span>Insights</span>
+            </button>
+            <button class="nav-item" data-page="analytics" id="nav-analytics">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 20V10" />
+                    <path d="M12 20V4" />
+                    <path d="M6 20v-6" />
+                </svg>
+                <span>Analytics</span>
+            </button>
+            <button class="nav-item" data-page="profile" id="nav-profile">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+                <span>Profile</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/session-scripts-1.js"></script>
+    <script src="js/session-scripts-2.js"></script>
+    <script src="js/session-scripts-3.js"></script>
+    <script src="js/session-scripts-30min.js"></script>
+    <script src="js/audio-engine.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/pages.js"></script>
+    <script src="js/router.js"></script>
+    <!-- Session auth guard: redirect to login if no active session -->
+    <script>
+        (async function sessionGuard() {
+            const { data: { session } } = await ZenithSupabase.auth.getSession();
+            if (!session) {
+                // No active session — redirect to login
+                window.location.replace('login.html');
+                return;
+            }
+            // Populate user from session
+            if (window.ZenithAuth) {
+                ZenithAuth.session = session;
+                ZenithAuth.user = session.user;
+                // Load DB profile into ZenithData.user
+                await ZenithAuth._loadProfile(session.user.id);
+            }
+        })();
+    </script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
