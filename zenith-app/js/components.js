@@ -714,5 +714,65 @@ const ZenithComponents = {
                 </div>
             </div>
         `;
+    },
+
+    // ── Notification Settings ──
+    notificationSettings() {
+        const settings = ZenithNotifications.settings;
+        const timeOptions = [
+            { label: 'Morning (8:00 AM)', value: '08:00:00' },
+            { label: 'Afternoon (1:00 PM)', value: '13:00:00' },
+            { label: 'Evening (8:00 PM)', value: '20:00:00' }
+        ];
+
+        return `
+            <div class="notification-settings-panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+                    <div>
+                        <div style="font-weight:600; color:var(--text-primary);">Daily Reminders</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Get notified to complete your session</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="notif-enabled" ${settings.enabled ? 'checked' : ''} 
+                                onchange="ZenithNotifications.saveSettings({ notifications_enabled: this.checked })">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label>Reminder Timing</label>
+                    <select id="notif-time" onchange="ZenithNotifications.saveSettings({ reminder_time: this.value })"
+                            style="width: 100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
+                        ${timeOptions.map(t => `<option value="${t.value}" ${settings.reminderTime === t.value.substring(0, 5) ? 'selected' : ''}>${t.label}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+                    <div>
+                        <div style="font-weight:600; color:var(--text-primary);">Streak Motivation</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Celebrate consistency milestones</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="notif-streak" ${settings.streakMotivation ? 'checked' : ''} 
+                                onchange="ZenithNotifications.saveSettings({ streak_motivation_enabled: this.checked })">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="cta-button" style="background: rgba(20, 184, 166, 0.1); color: var(--accent); border: 1px solid var(--accent); font-size: 0.85rem;"
+                            onclick="ZenithNotifications.requestPermission()">
+                        Enable Push
+                    </button>
+                    <button class="cta-button" style="background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.85rem;"
+                            onclick="ZenithNotifications.sendLocalNotification('✦ Zenith Test', { body: 'Notifications are working perfectly.' })">
+                        Test Alert
+                    </button>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 12px;">
+                    Browser permissions: <strong>${('Notification' in window) ? Notification.permission : 'Not supported'}</strong>
+                </div>
+            </div>
+        `;
     }
 };

@@ -217,6 +217,11 @@ const ZenithState = {
             if (this.moodCheckIn) {
                 this.showMoodCheckOut = true;
             }
+
+            // Trigger streak motivation if applicable
+            if (completed && window.ZenithNotifications) {
+                ZenithNotifications.triggerStreakMotivation(ZenithData.user.currentStreak);
+            }
         }
 
         clearInterval(this.playerTimer);

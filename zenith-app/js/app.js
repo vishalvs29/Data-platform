@@ -21,6 +21,11 @@
             await ZenithAuth.init();
         }
 
+        // Initialize Notifications
+        if (window.ZenithNotifications) {
+            await ZenithNotifications.init();
+        }
+
         // Bottom nav click handlers
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
@@ -49,6 +54,14 @@
         console.log('%c✦ Zenith Premium Wellness', 'color: #14b8a6; font-size: 20px; font-weight: bold;');
         console.log('%cEnterprise Mental Health Platform', 'color: #94a3b8; font-size: 12px;');
         console.log('%cE2E Encrypted · No employer access · HIPAA-aligned', 'color: #22c55e; font-size: 11px;');
+
+        // Check for notifications immediately and then every hour
+        if (window.ZenithNotifications) {
+            ZenithNotifications.checkAndNotify();
+            setInterval(() => {
+                ZenithNotifications.checkAndNotify();
+            }, 60 * 60 * 1000);
+        }
     });
 
     // Create floating ambient particles

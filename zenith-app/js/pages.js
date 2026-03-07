@@ -659,9 +659,15 @@ const ZenithPages = {
                     </div>
                 </div>
 
-                <!-- Edit Profile Form -->
+                <!-- Settings -->
                 <div class="profile-section">
-                    <div class="profile-section-title">Edit Profile</div>
+                    <div class="profile-section-title">Settings</div>
+                    <div style="margin-bottom:24px;">
+                        <div class="form-label" style="margin-bottom:12px;">Notification Preferences</div>
+                        ${ZenithComponents.notificationSettings()}
+                    </div>
+                    
+                    <div class="form-label" style="margin-bottom:12px;">Edit Profile</div>
                     ${ZenithComponents.profileForm()}
                 </div>
 

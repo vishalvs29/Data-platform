@@ -180,6 +180,22 @@ CREATE TABLE IF NOT EXISTS public.sleep_sessions (
 
 
 -- ============================================================
+--  8. NOTIFICATION SETTINGS
+--  User preferences for daily reminders and push tokens.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.notification_settings (
+    user_id                   UUID PRIMARY KEY REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    notifications_enabled     BOOLEAN DEFAULT TRUE,
+    reminder_time             TIME DEFAULT '08:00:00',
+    timezone                  TEXT DEFAULT 'UTC',
+    streak_motivation_enabled BOOLEAN DEFAULT TRUE,
+    push_token                TEXT,
+    last_notification_sent    TIMESTAMPTZ,
+    updated_at                TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+-- ============================================================
 --  ROW LEVEL SECURITY (RLS)
 --  Every table is locked down so users can only access
 --  their own rows. Supabase Auth JWT provides user_id.
@@ -194,11 +210,20 @@ ALTER TABLE public.analytics_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.streaks          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.focus_sessions   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sleep_sessions   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notification_settings ENABLE ROW LEVEL SECURITY;
 
 -- ── user_profiles ──
+-- ... (existing user_profiles policies)
 CREATE POLICY "Users can read own profile"   ON public.user_profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON public.user_profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON public.user_profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- ... (other policies)
+
+-- ── notification_settings ──
+CREATE POLICY "Users can read own notification_settings"   ON public.notification_settings FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own notification_settings" ON public.notification_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own notification_settings" ON public.notification_settings FOR UPDATE USING (auth.uid() = user_id);
 
 -- ── session_records ──
 CREATE POLICY "Users own sessions (select)"  ON public.session_records FOR SELECT USING (auth.uid() = user_id);

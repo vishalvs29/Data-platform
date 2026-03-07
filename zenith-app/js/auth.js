@@ -34,6 +34,9 @@ const ZenithAuth = {
             this.user = session.user;
             console.log('✦ Zenith Auth: Session restored for', session.user.email);
             await this._loadProfile(session.user.id);
+            if (window.ZenithNotifications) {
+                await ZenithNotifications.init();
+            }
             ZenithAnalytics.track('session_restored', { user_id: session.user.id });
         }
 
