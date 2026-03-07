@@ -36,6 +36,9 @@ const ZenithRouter = {
             case 'profile':
                 html = ZenithPages.profile();
                 break;
+            case 'resilience':
+                html = ZenithPages.resilience();
+                break;
             default:
                 html = ZenithPages.home();
         }

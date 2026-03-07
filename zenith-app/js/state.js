@@ -22,6 +22,8 @@ const ZenithState = {
     moodCheckIn: null, // Stores { preMood, preTags, timestamp }
     showMoodCheckIn: false,
     showMoodCheckOut: false,
+    resilienceDay: 1, // Current active day of the 21-day program
+    resilienceProgress: {}, // Map of day number to completion status: { 1: true, 2: false, ... }
 
     listeners: [],
 
@@ -125,14 +127,20 @@ const ZenithState = {
         this.notify();
     },
 
-    skipForward() {
-        this.playerElapsed = Math.min(this.playerElapsed + 15, this.getSessionDuration() * 60);
+    seekTo(seconds) {
+        this.playerElapsed = seconds;
+        ZenithAudioEngine.seek(seconds);
         this.notify();
     },
 
+    skipForward() {
+        const nextTime = Math.min(this.playerElapsed + 15, this.getSessionDuration() * 60);
+        this.seekTo(nextTime);
+    },
+
     skipBackward() {
-        this.playerElapsed = Math.max(this.playerElapsed - 15, 0);
-        this.notify();
+        const prevTime = Math.max(this.playerElapsed - 15, 0);
+        this.seekTo(prevTime);
     },
 
     stopSession() {
@@ -198,6 +206,12 @@ const ZenithState = {
 
             // Update in-memory stats immediately
             this.updatePracticeStats(duration);
+
+            // If it's a resilience session and marked completed, advance the program
+            if (completed && this.activeSessionId.startsWith('res-d')) {
+                const dayNum = parseInt(this.activeSessionId.replace('res-d', ''));
+                this.completeResilienceDay(dayNum);
+            }
 
             // Auto-trigger post-session mood check-out if check-in was done
             if (this.moodCheckIn) {
@@ -358,5 +372,29 @@ const ZenithState = {
         }
 
         return "✦ AI Insight: You are maintaining a steady emotional baseline. Try increasing your session duration to 21 minutes for deeper integration.";
+    },
+
+    completeResilienceDay(dayNumber) {
+        this.resilienceProgress[dayNumber] = true;
+        if (dayNumber === this.resilienceDay && this.resilienceDay < 21) {
+            this.resilienceDay++;
+        }
+
+        // Persist to Supabase if available
+        if (window.ZenithSupabase) {
+            const userId = window.ZenithAuth?.user?.id || ZenithData.user.id;
+            window.ZenithSupabase
+                .from('user_profiles')
+                .update({
+                    resilience_day: this.resilienceDay,
+                    resilience_progress: this.resilienceProgress
+                })
+                .eq('id', userId)
+                .then(({ error }) => {
+                    if (error) console.error('✦ Zenith: Error updating resilience progress:', error.message);
+                    else console.log('✦ Zenith: Resilience progress saved.');
+                });
+        }
+        this.notify();
     }
 };

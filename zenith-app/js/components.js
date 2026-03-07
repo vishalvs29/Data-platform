@@ -305,7 +305,6 @@ const ZenithComponents = {
     audioPlayer(session) {
         const totalSeconds = session.duration * 60;
         const elapsed = ZenithState.playerElapsed;
-        const remaining = totalSeconds - elapsed;
         const progress = elapsed / totalSeconds;
         const therapist = ZenithData.getTherapistById(session.therapist);
 
@@ -315,31 +314,39 @@ const ZenithComponents = {
 
         const formatTime = (s) => {
             const m = Math.floor(s / 60);
-            const sec = s % 60;
+            const sec = Math.floor(s % 60);
             return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
         };
 
-        // Generate waveform bars
-        const bars = Array.from({ length: 30 }, (_, i) => {
-            const delay = (i * 0.08).toFixed(2);
-            const h = ZenithState.playerPlaying ? '' : 'animation-play-state: paused;';
-            return `<div class="waveform-bar" style="animation-delay:${delay}s;${h}"></div>`;
+        // Generate waveform bars - dynamic based on playing state
+        const bars = Array.from({ length: 40 }, (_, i) => {
+            const delay = (i * 0.05).toFixed(2);
+            const active = ZenithState.playerPlaying ? 'playing' : '';
+            return `<div class="waveform-bar ${active}" style="animation-delay:${delay}s;"></div>`;
         }).join('');
 
         return `
             <div class="audio-player-container page-enter">
+                <!-- Background Ambient Gradient -->
+                <div class="player-bg-gradient ${session.thumbGradient || 'grad-stress'}"></div>
+                
                 <div class="player-visualizer">
-                    <div class="breathing-circle"></div>
+                    <!-- Layered breathing circles -->
+                    <div class="breathing-glow"></div>
+                    <div class="breathing-circle ${ZenithState.playerPlaying ? 'pulse' : ''}"></div>
+                    <div class="breathing-inner"></div>
                 </div>
+
                 <button class="player-close" onclick="ZenithState.stopSession()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M18 6L6 18M6 6l12 12"/>
                     </svg>
                 </button>
+
                 <div class="player-content">
-                    <div class="player-session-label">${session.category.toUpperCase()} · ${session.duration} MIN</div>
-                    <div class="player-session-title">${session.title}</div>
+                    <div class="player-session-label animate-fade-in">${session.category.toUpperCase()} SESSION · ${session.duration} MIN</div>
+                    <div class="player-session-title animate-fade-in">${session.title}</div>
+                    
                     <div class="progress-ring-container">
                         <svg class="progress-ring" viewBox="0 0 240 240">
                             <circle class="progress-ring-bg" cx="120" cy="120" r="${radius}"/>
@@ -348,42 +355,60 @@ const ZenithComponents = {
                                     stroke-dashoffset="${offset}"/>
                         </svg>
                         <div class="progress-ring-time">
-                            <div class="time-current">${formatTime(remaining)}</div>
-                            <div class="time-label">remaining</div>
+                            <div class="time-current">${formatTime(elapsed)}</div>
+                            <div class="time-divider">/</div>
+                            <div class="time-total">${session.duration}:00</div>
                         </div>
                     </div>
+
                     <div class="player-caption-container">
-                        <p class="player-caption">${ZenithState.playerCaption || 'Ready to start...'}</p>
+                        <p class="player-caption">${ZenithAudioEngine.getCaption() || 'Centering your focus...'}</p>
                     </div>
-                    <div class="waveform">${bars}</div>
+
+                    <div class="player-waveform-container">
+                        <div class="waveform">${bars}</div>
+                    </div>
+
+                    <!-- Progress Bar (Scrubbable) -->
+                    <div class="player-scrubber">
+                        <input type="range" class="scrubber-range" min="0" max="${totalSeconds}" value="${elapsed}" 
+                               oninput="ZenithState.seekTo(this.value)">
+                        <div class="scrubber-labels">
+                            <span>${formatTime(elapsed)}</span>
+                            <span>${session.duration}:00</span>
+                        </div>
+                    </div>
+
                     <div class="player-controls">
                         <button class="player-btn" onclick="ZenithState.skipBackward()">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="11 19 2 12 11 5 11 19"/>
-                                <polygon points="22 19 13 12 22 5 22 19"/>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
                             </svg>
                         </button>
-                        <button class="player-btn player-btn-main" onclick="ZenithState.togglePlayer()">
-                            ${ZenithState.playerPlaying
-                ? '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
-                : '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+                        
+                        <button class="player-btn player-btn-main ${ZenithState.playerPlaying ? 'playing' : ''}" 
+                                onclick="ZenithState.togglePlayer()">
+                            <div class="play-icon-wrapper">
+                                ${ZenithState.playerPlaying
+                ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
             }
+                            </div>
                         </button>
+
                         <button class="player-btn" onclick="ZenithState.skipForward()">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="13 19 22 12 13 5 13 19"/>
-                                <polygon points="2 19 11 12 2 5 2 19"/>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
                             </svg>
                         </button>
                     </div>
                 </div>
+
                 <div class="player-bottom-info">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 18V5l12-2v13"/>
-                        <circle cx="6" cy="18" r="3"/>
-                        <circle cx="18" cy="16" r="3"/>
-                    </svg>
-                    ${session.backgroundAudio ? session.backgroundAudio.split('—')[0].trim() : 'Ambient Audio'} · ${therapist ? therapist.name : ''}
+                    <div class="now-playing-info">
+                        <span class="pulse-dot"></span>
+                        Premium AI Narration · ${therapist ? therapist.name : 'Marcus'}
+                    </div>
                 </div>
             </div>
         `;
@@ -622,6 +647,70 @@ const ZenithComponents = {
                 <div class="ai-insight-content">
                     <div class="ai-insight-label">Zenith AI Observer</div>
                     <div class="ai-insight-text">${insight}</div>
+                </div>
+            </div>
+        `;
+    },
+
+    resilienceJourney() {
+        const currentDay = ZenithState.resilienceDay;
+        const progress = ZenithState.resilienceProgress;
+        const sessions = ResilienceProgramData;
+
+        const weeks = [
+            { title: 'Week 1: Nervous System Reset', range: [1, 7], theme: 'basement' },
+            { title: 'Week 2: Emotional Regulation', range: [8, 14], theme: 'building' },
+            { title: 'Week 3: Peak Performance', range: [15, 21], theme: 'peak' }
+        ];
+
+        return `
+            <div class="resilience-journey page-enter">
+                <div class="journey-header">
+                    <div class="journey-badge">21-DAY PREMIUM PROGRAM</div>
+                    <h1 class="journey-title">Mental Resilience for High-Stakes Professionals</h1>
+                    <div class="journey-progress-summary">
+                        <span>Overall Progress</span>
+                        <span>${Math.round((Object.keys(progress).length / 21) * 100)}%</span>
+                    </div>
+                    <div class="program-progress-bar">
+                        <div class="program-progress-fill" style="width: ${(Object.keys(progress).length / 21) * 100}%"></div>
+                    </div>
+                </div>
+
+                <div class="journey-weeks">
+                    ${weeks.map(w => `
+                        <div class="journey-week">
+                            <h2 class="week-title">${w.title}</h2>
+                            <div class="week-grid">
+                                ${sessions.filter(s => s.day >= w.range[0] && s.day <= w.range[1]).map(s => {
+            const isCompleted = progress[s.day];
+            const isActive = s.day === currentDay;
+            const isLocked = s.day > currentDay;
+            let statusClass = isLocked ? 'locked' : (isCompleted ? 'completed' : (isActive ? 'active' : ''));
+
+            return `
+                                        <div class="journey-day-card ${statusClass}" 
+                                             onclick="${isLocked ? '' : `ZenithState.navigateTo('detail', { sessionId: '${s.id}' })`}">
+                                            <div class="day-number">Day ${s.day}</div>
+                                            <div class="day-dot"></div>
+                                            <div class="day-info">
+                                                <div class="day-title">${s.title}</div>
+                                                <div class="day-meta">${s.duration} min · ${isLocked ? 'Locked' : (isCompleted ? '✓ Completed' : 'Start now')}</div>
+                                            </div>
+                                            ${isLocked ? `
+                                                <div class="day-lock">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                                    </svg>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `;
+        }).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;

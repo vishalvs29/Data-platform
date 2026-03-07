@@ -547,7 +547,32 @@ const ZenithData = {
                 backgroundAudio: 'Real-time binaural beats (Alpha/Theta)'
             };
         }
-        return this.sessions.find(s => s.id === id);
+
+        let session = this.sessions.find(s => s.id === id);
+
+        // Check in ResilienceProgramData if not found in standard sessions
+        if (!session && typeof ResilienceProgramData !== 'undefined') {
+            const resSession = ResilienceProgramData.find(s => s.id === id);
+            if (resSession) {
+                session = {
+                    ...resSession,
+                    category: 'stress', // Default category for resilience program for UI matching
+                    level: 'Intermediate',
+                    therapist: 'raj', // Default therapist for resilience
+                    thumbGradient: 'thumb-gradient-3', // Default gradient
+                    thumbIcon: '🧘',
+                    description: resSession.meditation_focus,
+                    psychologicalGoal: 'Nervous system regulation and mental resilience.',
+                    neuroscienceBasis: 'Based on polyvagal theory and NASA-derived rest cycles.',
+                    techniques: ['Breathwork', 'Meditation', 'Bhramari'],
+                    voiceTone: 'Calm, authoritative, professional.',
+                    backgroundAudio: 'Ambient theta waves with binaural beats.',
+                    tags: ['Resilience', 'Premium', 'Program']
+                };
+            }
+        }
+
+        return session;
     },
 
     getTherapistById(id) {

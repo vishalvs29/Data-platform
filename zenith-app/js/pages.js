@@ -48,6 +48,24 @@ const ZenithPages = {
                     ${ZenithComponents.privacyBadge()}
                 </div>
 
+                <!-- Resilience Program Card -->
+                <div class="resilience-hero-card" onclick="ZenithState.navigateTo('resilience')" style="margin: 0 16px 24px; padding: 24px; background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); border-radius: 16px; color: white; cursor: pointer; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(20, 184, 166, 0.3);">
+                    <div style="position: absolute; right: -20px; top: -20px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+                    <div style="position: relative; z-index: 2;">
+                        <div style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.8); margin-bottom: 8px; text-transform: uppercase;">Premium Program</div>
+                        <h2 style="font-size: 1.5rem; font-family: 'Playfair Display', serif; font-weight: 700; margin-bottom: 8px;">21-Day Resilience Journey</h2>
+                        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.9); line-height: 1.4; max-width: 80%; margin-bottom: 16px;">
+                            Master your nervous system with our neuroscience-backed path for high-stakes professionals.
+                        </p>
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 600;">
+                            <span>Day ${ZenithState.resilienceDay} of 21</span>
+                            <div style="height: 4px; width: 60px; background: rgba(255,255,255,0.2); border-radius: 2px;">
+                                <div style="height: 100%; width: ${(Object.keys(ZenithState.resilienceProgress).length / 21) * 100}%; background: white; border-radius: 2px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Featured Session -->
                 ${featured ? ZenithComponents.featuredCard(featured) : ''}
 
@@ -623,6 +641,24 @@ const ZenithPages = {
                     </div>
                 </div>
 
+                <!-- Active Programs -->
+                <div class="profile-section">
+                    <div class="profile-section-title">Zenith Premium Program</div>
+                    <div class="program-progress-bar-wrap" style="cursor: pointer; position: relative; border: 1px solid rgba(20, 184, 166, 0.3); background: rgba(20, 184, 166, 0.05);" onclick="ZenithState.navigateTo('resilience')">
+                        <div class="program-progress-info">
+                            <span style="font-weight: 600; color: var(--text-primary);">21-Day Mental Resilience</span>
+                            <span style="color: var(--accent); font-weight: 700;">Day ${ZenithState.resilienceDay}/21</span>
+                        </div>
+                        <div class="program-progress-bar">
+                            <div class="program-progress-fill" style="width: ${(Object.keys(ZenithState.resilienceProgress).length / 21) * 100}%"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">${Object.keys(ZenithState.resilienceProgress).length} days completed</span>
+                            <span style="font-size: 0.8rem; color: var(--accent); font-weight: 600;">Continue →</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Edit Profile Form -->
                 <div class="profile-section">
                     <div class="profile-section-title">Edit Profile</div>
@@ -630,6 +666,25 @@ const ZenithPages = {
                 </div>
 
                 <div style="height:40px;"></div>
+            </div>
+        `;
+    },
+
+    // ═══════════════════════════════════════════
+    // RESILIENCE PROGRAM PAGE
+    // ═══════════════════════════════════════════
+    resilience() {
+        return `
+            <div class="page-resilience page-enter">
+                <div class="resilience-header">
+                    <button class="detail-hero-back" onclick="ZenithState.goBack()" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; color:white; cursor:pointer; margin: 16px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </button>
+                </div>
+                ${ZenithComponents.resilienceJourney()}
+                <div style="height:60px;"></div>
             </div>
         `;
     },
