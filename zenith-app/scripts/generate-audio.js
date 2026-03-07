@@ -7,8 +7,10 @@
  * 2. Run: node scripts/generate-audio.js
  */
 
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 const https = require('https');
 
 // --- Configuration ---
