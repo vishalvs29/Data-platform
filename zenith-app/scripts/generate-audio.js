@@ -7,15 +7,14 @@
  * 2. Run: node scripts/generate-audio.js
  */
 
-require('dotenv').config();
-const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+const fs = require('fs');
 const https = require('https');
 
 // --- Configuration ---
 const API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = 'pNInz6obpg8ndclQU7Nc'; // "Marcus" - Deep, resonant male
+const VOICE_ID = 'nPczCjzI2devNBz1zQrb'; // "Brian" - Deep, Resonant and Comforting
 const MODEL_ID = 'eleven_multilingual_v2';
 const OUTPUT_DIR = path.join(__dirname, '../assets/audio/sessions');
 const SCRIPTS_DIR = path.join(__dirname, '../js');

@@ -1,11 +1,11 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const https = require('https');
 const fs = require('fs');
-const path = require('path');
 
 // --- Configuration ---
 const API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = 'pNInz6obpg8ndclQU7Nc'; // "Marcus"
+const VOICE_ID = 'nPczCjzI2devNBz1zQrb'; // "Brian" - Deep, Resonant and Comforting
 const MODEL_ID = 'eleven_multilingual_v2';
 
 const TEST_TEXT = "Welcome to Zenith. Take a comfortable seated position, gently close your eyes, and take a slow deep breath.";
@@ -36,11 +36,19 @@ const options = {
 const req = https.request(options, (res) => {
     console.log(`STATUS: ${res.statusCode}`);
     if (res.statusCode === 200) {
-        console.log('SUCCESS');
+        const fileStream = fs.createWriteStream(path.join(__dirname, OUTPUT_FILE));
+        res.pipe(fileStream);
+        fileStream.on('finish', () => {
+            console.log('SUCCESS: Audio saved to', OUTPUT_FILE);
+            process.exit(0);
+        });
     } else {
         let data = '';
         res.on('data', chunk => data += chunk);
-        res.on('end', () => console.log(`ERROR_BODY: ${data}`));
+        res.on('end', () => {
+            console.log(`ERROR_BODY: ${data}`);
+            process.exit(1);
+        });
     }
 });
 

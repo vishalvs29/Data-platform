@@ -740,6 +740,40 @@ const ZenithComponents = {
                 </div>
 
                 <div class="form-group" style="margin-bottom:20px;">
+                    <label>Preferred Channel</label>
+                    <select id="notif-channel" onchange="const val = this.value; document.getElementById('whatsapp-settings').style.display = val === 'whatsapp' ? 'block' : 'none'; document.getElementById('telegram-settings').style.display = val === 'telegram' ? 'block' : 'none'; ZenithNotifications.saveSettings({ preferred_channel: val })"
+                            style="width: 100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
+                        <option value="in-app" ${settings.preferredChannel === 'in-app' ? 'selected' : ''}>In-App Only</option>
+                        <option value="whatsapp" ${settings.preferredChannel === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+                        <option value="telegram" ${settings.preferredChannel === 'telegram' ? 'selected' : ''}>Telegram</option>
+                    </select>
+                </div>
+
+                <div id="whatsapp-settings" style="display: ${settings.preferredChannel === 'whatsapp' ? 'block' : 'none'}; margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom:8px; font-size:0.9rem;">WhatsApp Number</label>
+                    <input type="tel" id="whatsapp-number" value="${settings.whatsappNumber || ''}" 
+                           placeholder="+1234567890"
+                           onchange="ZenithNotifications.saveSettings({ whatsapp_number: this.value })"
+                           style="width: 100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Include country code (e.g., +1 for US)</div>
+                </div>
+
+                <div id="telegram-settings" style="display: ${settings.preferredChannel === 'telegram' ? 'block' : 'none'}; margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom:8px; font-size:0.9rem;">Telegram Connection</label>
+                    ${settings.telegramUserId ? `
+                        <div style="padding:12px; background:rgba(20, 184, 166, 0.1); border-radius:8px; color:var(--accent); font-size:0.85rem; border:1px solid rgba(20, 184, 166, 0.2);">
+                            ✓ Connected to Telegram
+                        </div>
+                    ` : `
+                        <a href="https://t.me/ZenithMindfulBot" target="_blank" class="cta-button" 
+                           style="background:rgba(0, 136, 204, 0.1); color:#0088cc; border:1px solid #0088cc; font-size:0.85rem; display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                            Connect Telegram Bot
+                        </a>
+                    `}
+                </div>
+
+                <div class="form-group" style="margin-bottom:20px;">
                     <label>Reminder Timing</label>
                     <select id="notif-time" onchange="ZenithNotifications.saveSettings({ reminder_time: this.value })"
                             style="width: 100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
