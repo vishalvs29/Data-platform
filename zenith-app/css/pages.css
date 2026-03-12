@@ -466,3 +466,37 @@
     margin-top: var(--space-md);
     height: 30px;
 }
+/* ── Platform-Specific Hero ── */
+.platform-hero {
+    padding: 32px 16px;
+    margin-bottom: 24px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.platform-hero-badge {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.platform-hero-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.platform-hero-content p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}

@@ -26,6 +26,11 @@
             await ZenithNotifications.init();
         }
 
+        // Initialize Router
+        if (window.ZenithRouter) {
+            ZenithRouter.init();
+        }
+
         // Bottom nav click handlers
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {

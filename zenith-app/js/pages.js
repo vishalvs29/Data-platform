@@ -8,6 +8,29 @@ let _selectedMoodScale = 5;
 const ZenithPages = {
 
     // ═══════════════════════════════════════════
+    // GATEWAY PAGE
+    // ═══════════════════════════════════════════
+    gateway() {
+        return `
+            <div class="gateway-container animate-fade-in">
+                <header class="text-center" style="margin-bottom: 48px;">
+                    <div class="logo-large" style="margin-bottom: 24px;">✦ Zenith</div>
+                    <h1 class="section-title">Select Your Platform</h1>
+                    <p class="section-subtitle">Choose the specialized mental performance experience designed for your role.</p>
+                </header>
+
+                <div class="gateway-grid">
+                    ${Object.values(ZenithData.platforms).map(p => ZenithComponents.gatewayCard(p)).join('')}
+                </div>
+                
+                <div style="text-align: center; margin-top: 60px; color: var(--text-muted); font-size: 0.8rem;">
+                    Zenith Performance Ecosystem · E2E Encrypted · Professional Grade
+                </div>
+            </div>
+        `;
+    },
+
+    // ═══════════════════════════════════════════
     // HOME PAGE
     // ═══════════════════════════════════════════
     home() {
@@ -18,16 +41,16 @@ const ZenithPages = {
         else if (hour >= 17) greeting = 'Good evening';
 
         const featured = ZenithData.getFeaturedSession();
-        const recommended = ZenithData.getRecommendations();
+        const recommended = ZenithData.getRecommendations().filter(s => s.platforms && s.platforms.includes(ZenithState.currentPlatform));
 
         return `
             <div class="page-home page-enter">
                 <!-- Header -->
                 <div class="home-header">
                     <div>
-                        <div class="home-greeting">${greeting}</div>
+                        <div class="home-greeting">${greeting} · ${ZenithData.platforms[ZenithState.currentPlatform]?.title || 'Zenith'}</div>
                         <div class="home-name">Welcome, ${user.name}</div>
-                        <div class="home-subtitle">How's your mood?</div>
+                        <div class="home-subtitle">Select a session to begin your practice.</div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
                         <div class="home-avatar">${user.avatar}</div>
@@ -108,7 +131,8 @@ const ZenithPages = {
     // ═══════════════════════════════════════════
     explore() {
         const { selectedDuration, selectedCategory, searchQuery } = ZenithState;
-        let sessions = ZenithData.getFilteredSessions(selectedDuration, selectedCategory);
+        let sessions = ZenithData.getFilteredSessions(selectedDuration, selectedCategory)
+            .filter(s => s.platforms && s.platforms.includes(ZenithState.currentPlatform));
 
         if (searchQuery) {
             const q = searchQuery.toLowerCase();

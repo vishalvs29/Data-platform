@@ -1748,3 +1748,100 @@ input:checked+.slider:before {
 .streak-widget:hover .streak-milestone {
     transform: rotate(15deg) scale(1.1);
 }
+
+/* ── Platform Gateway ── */
+.gateway-container {
+    padding: 60px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.gateway-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 48px;
+}
+
+.gateway-card {
+    display: flex;
+    flex-direction: column;
+    padding: 32px;
+    height: 100%;
+    cursor: pointer;
+    transition: all var(--transition-bounce);
+}
+
+.gateway-card:hover {
+    transform: translateY(-8px);
+}
+
+.gateway-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.gateway-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.gateway-desc {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    flex: 1;
+}
+
+.gateway-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+
+.gateway-feature-tag {
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.gateway-btn {
+    width: 100%;
+    justify-content: center;
+}
+
+.logo-large {
+    font-family: var(--font-serif);
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #14b8a6 0%, #0891b2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.nav-platform-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.nav-items-wrapper {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 0;
+}

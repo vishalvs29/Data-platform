@@ -24,6 +24,7 @@ const ZenithState = {
     showMoodCheckOut: false,
     resilienceDay: 1, // Current active day of the 21-day program
     resilienceProgress: {}, // Map of day number to completion status: { 1: true, 2: false, ... }
+    currentPlatform: null, // null = Gateway, 'schools', 'corporate', 'government', 'defense'
 
     listeners: [],
 
@@ -33,6 +34,21 @@ const ZenithState = {
 
     notify() {
         this.listeners.forEach(fn => fn(this));
+    },
+
+    switchPlatform(platformId) {
+        this.currentPlatform = platformId;
+        this.currentPage = 'home';
+        this.notify();
+
+        // Update URL hash without triggering double render if possible
+        if (platformId) {
+            window.location.hash = platformId;
+        } else {
+            window.location.hash = '';
+        }
+
+        console.log(`✦ Zenith Platform: Switched to ${platformId || 'Gateway'}`);
     },
 
     navigateTo(page, data = {}) {

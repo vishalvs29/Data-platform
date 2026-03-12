@@ -4,6 +4,66 @@
    ============================================================ */
 
 const ZenithData = {
+    // ── Platform Configurations ──
+    platforms: {
+        schools: {
+            id: 'schools',
+            title: 'Schools & Colleges',
+            icon: '🎓',
+            description: 'Mental wellness, emotional regulation, and focus training designed for students and educators.',
+            themeColor: '#10b981', // Emerald
+            features: [
+                'Student Mental Wellness',
+                'Daily Mood Check',
+                'Focus Training',
+                'Exam Stress Support',
+                'Counselor Integration'
+            ],
+            route: '/schools'
+        },
+        corporate: {
+            id: 'corporate',
+            title: 'Corporate',
+            icon: '🏢',
+            description: 'Stress management, burnout recovery, and peak performance training for professionals.',
+            themeColor: '#14b8a6', // Teal
+            features: [
+                'Burnout Recovery',
+                'Focus Training',
+                'Leadership Resilience',
+                'Workplace Wellbeing Analytics'
+            ],
+            route: '/corporate'
+        },
+        government: {
+            id: 'government',
+            title: 'Government',
+            icon: '⚖️',
+            description: 'Mental clarity, emotional resilience, and decision-making support for public sector leaders.',
+            themeColor: '#6366f1', // Indigo
+            features: [
+                'Decision Clarity',
+                'Stress Regulation',
+                'High Pressure Leadership Training'
+            ],
+            route: '/government'
+        },
+        defense: {
+            id: 'defense',
+            title: 'Police & Military',
+            icon: '⚔️',
+            description: 'Trauma recovery, nervous system regulation, and resilience training for high-stress operational roles.',
+            themeColor: '#f59e0b', // Amber
+            features: [
+                'Trauma-informed Meditation',
+                'Combat Stress Recovery',
+                'Nervous System Regulation',
+                'Sleep Recovery'
+            ],
+            route: '/defense'
+        }
+    },
+
     // ── Session Durations ──
     durations: [5, 10, 15, 21, 30, 45, 60],
 
@@ -50,7 +110,8 @@ const ZenithData = {
             techniques: ['Breathwork', 'Vagal Toning'],
             voiceTone: 'Calm, measured pace. 3-second pauses between instructions. Warm, grounding baritone.',
             backgroundAudio: 'Minimal — soft binaural beats at 10 Hz (alpha wave range)',
-            tags: ['Pre-Meeting', 'Quick Reset', 'Emergency']
+            tags: ['Pre-Meeting', 'Quick Reset', 'Emergency'],
+            platforms: ['corporate', 'government', 'defense']
         },
         {
             id: 's5-2',
@@ -67,7 +128,8 @@ const ZenithData = {
             techniques: ['CBT', 'Breathwork'],
             voiceTone: 'Confident, supportive. Slightly faster pace to match heightened arousal state, then gradually slowing.',
             backgroundAudio: 'Office-ambient masking with subtle 12 Hz binaural beats',
-            tags: ['Pre-Meeting', 'Performance', 'Fast']
+            tags: ['Pre-Meeting', 'Performance', 'Fast'],
+            platforms: ['corporate', 'government']
         },
         {
             id: 's5-3',
@@ -84,7 +146,8 @@ const ZenithData = {
             techniques: ['Polyvagal', 'Breathwork'],
             voiceTone: 'Empathetic, validating. Slow, warm tone acknowledging the difficulty of the experience.',
             backgroundAudio: 'Gentle white noise with soft ambient tones',
-            tags: ['Post-Conflict', 'Recovery', 'Office']
+            tags: ['Post-Conflict', 'Recovery', 'Office'],
+            platforms: ['corporate', 'government', 'defense', 'schools']
         },
 
         // ═══════════════════════════════════════════
@@ -105,7 +168,8 @@ const ZenithData = {
             techniques: ['MBSR', 'Polyvagal'],
             voiceTone: 'Steady, grounding. Each instruction delivered with deliberate pace. Uses directional language ("feel the ground beneath you").',
             backgroundAudio: 'Nature sounds — gentle stream with bird calls. No binaural beats.',
-            tags: ['Commute', 'Break', 'Grounding']
+            tags: ['Commute', 'Break', 'Grounding'],
+            platforms: ['schools', 'corporate', 'government', 'defense']
         },
         {
             id: 's10-2',
@@ -194,7 +258,8 @@ const ZenithData = {
             techniques: ['MBSR', 'Breathwork'],
             voiceTone: 'Gentle but progressively more focused. Transitions from soft to clear and energizing.',
             backgroundAudio: 'Binaural beats at 14 Hz (beta wave, low range) for the final 5 minutes',
-            tags: ['Afternoon', 'Cognitive', 'Productivity']
+            tags: ['Afternoon', 'Cognitive', 'Productivity'],
+            platforms: ['schools', 'corporate', 'government']
         },
 
         // ═══════════════════════════════════════════
@@ -249,7 +314,8 @@ const ZenithData = {
             techniques: ['Polyvagal', 'Breathwork'],
             voiceTone: 'Expert, warmly clinical. Educational segments interspersed with experiential exercises.',
             backgroundAudio: 'Low-frequency humming drones at 136.1 Hz (OM frequency) with nature sounds',
-            tags: ['Advanced', 'Nervous System', 'Regulation']
+            tags: ['Advanced', 'Nervous System', 'Regulation'],
+            platforms: ['defense', 'government']
         },
 
         // ═══════════════════════════════════════════
@@ -304,7 +370,8 @@ const ZenithData = {
             techniques: ['MBSR', 'Polyvagal'],
             voiceTone: 'Very gentle, unhurried. Spacious delivery with long comfortable silences. No urgency.',
             backgroundAudio: 'Soft piano with ambient pads',
-            tags: ['Emotional', 'Processing', 'Evening']
+            tags: ['Emotional', 'Processing', 'Evening'],
+            platforms: ['schools', 'corporate', 'government', 'defense']
         },
         {
             id: 's30-4',
@@ -359,7 +426,8 @@ const ZenithData = {
             techniques: ['MBSR', 'Sleep Hygiene', 'Polyvagal'],
             voiceTone: 'Progressively slower and softer. Voice drops in pitch and volume across the session. Final 10 minutes are near-whisper.',
             backgroundAudio: 'Pink noise with binaural beats descending from 8 Hz to 4 Hz (theta to delta wave transition)',
-            tags: ['Sleep', 'Evening', 'Bedtime']
+            tags: ['Sleep', 'Evening', 'Bedtime'],
+            platforms: ['defense', 'corporate', 'government']
         },
         {
             id: 's45-3',

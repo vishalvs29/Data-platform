@@ -834,5 +834,24 @@ const ZenithComponents = {
                 </div>
             </div>
         `;
+    },
+    // ── Platform Gateway Card ──
+    gatewayCard(platform) {
+        return `
+            <div class="gateway-card glass-card" onclick="ZenithState.switchPlatform('${platform.id}')">
+                <div class="gateway-icon">${platform.icon}</div>
+                <div class="gateway-content">
+                    <h3 class="gateway-title">${platform.title}</h3>
+                    <p class="gateway-desc">${platform.description}</p>
+                    <div class="gateway-features">
+                        ${platform.features.slice(0, 3).map(f => `<span class="gateway-feature-tag">${f}</span>`).join('')}
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm gateway-btn">
+                    Enter Platform
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </button>
+            </div>
+        `;
     }
 };

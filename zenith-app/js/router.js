@@ -4,11 +4,35 @@
    ============================================================ */
 
 const ZenithRouter = {
+    init() {
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (ZenithData.platforms[hash]) {
+                ZenithState.switchPlatform(hash);
+            } else if (hash === '' || hash === '/') {
+                ZenithState.switchPlatform(null);
+            }
+        });
+
+        // Handle initial hash
+        const initialHash = window.location.hash.replace('#', '');
+        if (ZenithData.platforms[initialHash]) {
+            ZenithState.currentPlatform = initialHash;
+        }
+    },
+
     render() {
         const container = document.getElementById('page-container');
         const nav = document.getElementById('bottom-nav');
 
         if (!container) return;
+
+        // If no platform selected, show gateway
+        if (!ZenithState.currentPlatform) {
+            container.innerHTML = ZenithPages.gateway();
+            if (nav) nav.classList.add('hidden');
+            return;
+        }
 
         let html = '';
         let showNav = true;
@@ -65,9 +89,31 @@ const ZenithRouter = {
 
         // Update nav active state
         this.updateNavState();
+        this.updateNavBranding();
 
         // Scroll to top on page change
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    updateNavBranding() {
+        const platformBar = document.getElementById('nav-platform-bar');
+        const iconEl = document.getElementById('nav-platform-icon');
+        const nameEl = document.getElementById('nav-platform-name');
+
+        if (!platformBar || !iconEl || !nameEl) return;
+
+        const platform = ZenithData.platforms[ZenithState.currentPlatform];
+        if (platform) {
+            iconEl.textContent = platform.icon;
+            nameEl.textContent = platform.title;
+            platformBar.style.borderTop = `2px solid ${platform.themeColor}`;
+            platformBar.style.color = platform.themeColor;
+        } else {
+            iconEl.textContent = '✦';
+            nameEl.textContent = 'Zenith';
+            platformBar.style.borderTop = 'none';
+            platformBar.style.color = 'var(--text-muted)';
+        }
     },
 
     updateNavState() {
