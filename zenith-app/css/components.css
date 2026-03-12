@@ -1719,3 +1719,32 @@ input:checked+.slider:before {
     flex-direction: column;
     gap: 12px;
 }
+/* ── Streak Widget ── */
+.streak-widget {
+    transition: all var(--transition-base);
+}
+
+.streak-widget:hover {
+    transform: translateY(-2px);
+    border-color: rgba(20, 184, 166, 0.2) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.streak-fire {
+    animation: firePulse 2s ease-in-out infinite;
+}
+
+@keyframes firePulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.4)); }
+    50% { transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.6)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.4)); }
+}
+
+.streak-milestone {
+    transition: all var(--transition-bounce);
+}
+
+.streak-widget:hover .streak-milestone {
+    transform: rotate(15deg) scale(1.1);
+}

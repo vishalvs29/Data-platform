@@ -716,6 +716,30 @@ const ZenithComponents = {
         `;
     },
 
+    // ── Streak Display ──
+    streakDisplay() {
+        const user = ZenithData.user;
+        const streak = user.currentStreak || 0;
+        const longest = user.longest_streak || streak;
+
+        return `
+            <div class="streak-widget animate-fade-in-up" 
+                 style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:16px; padding:20px; display:flex; align-items:center; gap:20px; margin: 0 16px 24px;">
+                <div class="streak-fire" style="font-size: 40px; filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.4));">🔥</div>
+                <div style="flex:1;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Current Streak</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin: 2px 0;">${streak} Days</div>
+                    <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">Personal Best: ${longest} Days</div>
+                </div>
+                <div class="streak-milestone" style="width: 50px; height: 50px; background: rgba(20, 184, 166, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(20, 184, 166, 0.2);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent)">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </div>
+            </div>
+        `;
+    },
+
     // ── Notification Settings ──
     notificationSettings() {
         const settings = ZenithNotifications.settings;
@@ -751,25 +775,30 @@ const ZenithComponents = {
 
                 <div id="whatsapp-settings" style="display: ${settings.preferredChannel === 'whatsapp' ? 'block' : 'none'}; margin-bottom: 20px;">
                     <label style="display:block; margin-bottom:8px; font-size:0.9rem;">WhatsApp Number</label>
-                    <input type="tel" id="whatsapp-number" value="${settings.whatsappNumber || ''}" 
+                    <input type="tel" id="whatsapp-number" value="${settings.channelId && settings.preferredChannel === 'whatsapp' ? settings.channelId : ''}" 
                            placeholder="+1234567890"
-                           onchange="ZenithNotifications.saveSettings({ whatsapp_number: this.value })"
+                           onchange="ZenithNotifications.saveSettings({ channel_id: this.value })"
                            style="width: 100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
                     <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Include country code (e.g., +1 for US)</div>
                 </div>
 
                 <div id="telegram-settings" style="display: ${settings.preferredChannel === 'telegram' ? 'block' : 'none'}; margin-bottom: 20px;">
                     <label style="display:block; margin-bottom:8px; font-size:0.9rem;">Telegram Connection</label>
-                    ${settings.telegramUserId ? `
+                    ${settings.channelId && settings.preferredChannel === 'telegram' ? `
                         <div style="padding:12px; background:rgba(20, 184, 166, 0.1); border-radius:8px; color:var(--accent); font-size:0.85rem; border:1px solid rgba(20, 184, 166, 0.2);">
-                            ✓ Connected to Telegram
+                            ✓ Connected to Telegram (${settings.channelId})
                         </div>
                     ` : `
-                        <a href="https://t.me/ZenithMindfulBot" target="_blank" class="cta-button" 
-                           style="background:rgba(0, 136, 204, 0.1); color:#0088cc; border:1px solid #0088cc; font-size:0.85rem; display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                            Connect Telegram Bot
-                        </a>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="telegram-id" placeholder="Your Telegram ID"
+                                   onchange="ZenithNotifications.saveSettings({ channel_id: this.value })"
+                                   style="flex:1; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
+                            <a href="https://t.me/ZenithMindfulBot" target="_blank" class="cta-button" 
+                               style="background:rgba(0, 136, 204, 0.1); color:#0088cc; border:1px solid #0088cc; font-size:0.85rem; display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding: 0 16px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                                Bot
+                            </a>
+                        </div>
                     `}
                 </div>
 
@@ -798,13 +827,10 @@ const ZenithComponents = {
                             onclick="ZenithNotifications.requestPermission()">
                         Enable Push
                     </button>
-                    <button class="cta-button" style="background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.85rem;"
-                            onclick="ZenithNotifications.sendLocalNotification('✦ Zenith Test', { body: 'Notifications are working perfectly.' })">
-                        Test Alert
+                    <button class="cta-button" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem;"
+                            onclick="ZenithNotifications.checkAndNotify()">
+                        Test Notification
                     </button>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 12px;">
-                    Browser permissions: <strong>${('Notification' in window) ? Notification.permission : 'Not supported'}</strong>
                 </div>
             </div>
         `;

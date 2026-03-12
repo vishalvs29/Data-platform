@@ -349,17 +349,93 @@ const ZenithState = {
     },
 
     // ── Stats & Achievements ──
-    updatePracticeStats(minutes) {
+    async updatePracticeStats(minutes) {
         const user = ZenithData.user;
-        user.totalSessions++;
-        user.totalMinutesPracticed += minutes;
+        const userId = window.ZenithAuth?.user?.id || user.id;
+        const todayStr = new Date().toISOString().split('T')[0];
 
-        // Simple streak logic: if last session was today or yesterday, increment or maintain
-        // For demo: just increment
-        user.currentStreak++;
-        if (user.currentStreak > user.longestStreak) user.longestStreak = user.currentStreak;
+        // 1. Fetch current streak data from Supabase if available, otherwise use local
+        let currentStreak = user.currentStreak || 0;
+        let longestStreak = user.longestStreak || 0;
+        let lastSessionDate = user.lastSessionDate;
+        let totalSessions = user.totalSessions || 0;
+
+        if (window.ZenithSupabase) {
+            const { data, error } = await window.ZenithSupabase
+                .from('user_streaks')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
+
+            if (data) {
+                currentStreak = data.current_streak;
+                longestStreak = data.longest_streak;
+                lastSessionDate = data.last_session_date;
+                totalSessions = data.total_sessions;
+            }
+        }
+
+        // 2. Logic: If session completed daily, increase streak.
+        // If it's the same day, don't increment streak but increment totalSessions.
+        // If it's the day after lastSessionDate, increment streak.
+        // If it's more than 1 day after, reset streak.
+
+        totalSessions++;
+
+        if (!lastSessionDate) {
+            currentStreak = 1;
+        } else {
+            const last = new Date(lastSessionDate);
+            const today = new Date(todayStr);
+            const diffTime = today - last;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+                currentStreak++;
+            } else if (diffDays > 1) {
+                currentStreak = 1;
+            }
+            // If diffDays === 0, streak stays same
+        }
+
+        if (currentStreak > longestStreak) longestStreak = currentStreak;
+        lastSessionDate = todayStr;
+
+        // 3. Update local state
+        user.totalSessions = totalSessions;
+        user.totalMinutesPracticed += minutes;
+        user.currentStreak = currentStreak;
+        user.longestStreak = longestStreak;
+        user.lastSessionDate = lastSessionDate;
+
+        // 4. Persist to Supabase
+        if (window.ZenithSupabase) {
+            await window.ZenithSupabase
+                .from('user_streaks')
+                .upsert({
+                    user_id: userId,
+                    current_streak: currentStreak,
+                    longest_streak: longestStreak,
+                    last_session_date: lastSessionDate,
+                    total_sessions: totalSessions,
+                    updated_at: new Date().toISOString()
+                });
+
+            // Also sync back to user_profiles for consistency
+            await window.ZenithSupabase
+                .from('user_profiles')
+                .update({
+                    current_streak: currentStreak,
+                    longest_streak: longestStreak,
+                    last_session_date: lastSessionDate,
+                    total_sessions: totalSessions,
+                    total_minutes: user.totalMinutesPracticed
+                })
+                .eq('id', userId);
+        }
 
         this.notify();
+        console.log(`✦ Zenith Streak: ${currentStreak} days. Total: ${totalSessions}`);
     },
 
     getMoodInsights() {

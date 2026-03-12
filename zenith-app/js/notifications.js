@@ -8,7 +8,10 @@ const ZenithNotifications = {
         enabled: true,
         reminderTime: '08:00',
         streakMotivation: true,
-        lastSent: null
+        lastSent: null,
+        preferredChannel: 'in-app',
+        channelId: null,
+        smartReminders: true
     },
 
     // ── INITIALISE ──
@@ -62,7 +65,10 @@ const ZenithNotifications = {
                 enabled: data.notifications_enabled,
                 reminderTime: data.reminder_time.substring(0, 5),
                 streakMotivation: data.streak_motivation_enabled,
-                lastSent: data.last_notification_sent
+                lastSent: data.last_notification_sent,
+                preferredChannel: data.preferred_channel || 'in-app',
+                channelId: data.channel_id,
+                smartReminders: data.smart_reminders_enabled
             };
             console.log('✦ Zenith Notifications: Settings loaded.');
         } else {
@@ -70,7 +76,10 @@ const ZenithNotifications = {
             await this.saveSettings({
                 notifications_enabled: true,
                 reminder_time: '08:00:00',
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                preferred_channel: 'in-app',
+                smart_reminders_enabled: true,
+                streak_motivation_enabled: true
             });
         }
     },
@@ -97,15 +106,26 @@ const ZenithNotifications = {
             if (updates.notifications_enabled !== undefined) this.settings.enabled = updates.notifications_enabled;
             if (updates.reminder_time !== undefined) this.settings.reminderTime = updates.reminder_time.substring(0, 5);
             if (updates.streak_motivation_enabled !== undefined) this.settings.streakMotivation = updates.streak_motivation_enabled;
+            if (updates.preferred_channel !== undefined) this.settings.preferredChannel = updates.preferred_channel;
+            if (updates.channel_id !== undefined) this.settings.channelId = updates.channel_id;
+            if (updates.smart_reminders_enabled !== undefined) this.settings.smartReminders = updates.smart_reminders_enabled;
         }
     },
 
     // ── TRIGGER ──
     sendLocalNotification(title, options = {}) {
-        if (!this.settings.enabled || Notification.permission !== 'granted') return;
+        if (!this.settings.enabled) return;
+
+        // Log notification to DB for analytics
+        this.logNotification('reminder', 'in-app', options.body || title);
+
+        if (Notification.permission !== 'granted') {
+            console.warn('✦ Zenith Notifications: Permission not granted for push.');
+            return;
+        }
 
         const defaultOptions = {
-            icon: 'icon-192.png', // Ensure this exists or use a web URL
+            icon: 'icon-192.png',
             badge: 'icon-192.png',
             silent: false
         };
@@ -121,9 +141,23 @@ const ZenithNotifications = {
         };
     },
 
+    async logNotification(type, channel, message) {
+        if (!window.ZenithSupabase || !window.ZenithAuth?.user) return;
+
+        await window.ZenithSupabase
+            .from('notification_logs')
+            .insert({
+                user_id: ZenithAuth.user.id,
+                notification_type: type,
+                channel: channel,
+                message: message,
+                sent_at: new Date().toISOString()
+            });
+    },
+
     // ── TRIGGER ──
     async checkAndNotify() {
-        if (!this.settings.enabled || Notification.permission !== 'granted') return;
+        if (!this.settings.enabled) return;
 
         // Avoid multiple notifications on the same day
         const today = new Date().toISOString().split('T')[0];
@@ -142,7 +176,9 @@ const ZenithNotifications = {
 
             // Smart logic: Only notify if we are past the user's preferred time
             if (hour >= reminderTimeHour) {
-                if (hour >= 20) { // Late evening catch-up
+                if (hour >= 21) return; // Respect "no late night" rule
+
+                if (hour >= 19) { // Evening catch-up
                     message = "Take a few minutes tonight to complete your Zenith session.";
                 } else {
                     const session = window.ResilienceProgramData ? ResilienceProgramData.find(s => s.day === currentDay) : null;
@@ -166,15 +202,49 @@ const ZenithNotifications = {
     },
 
     triggerStreakMotivation(streak) {
-        if (!this.settings.streakMotivation || streak < 2) return;
+        if (!this.settings.streakMotivation) return;
 
-        const messages = [
-            `Amazing! You're on a ${streak}-day Zenith streak.`,
-            `Keep it up! ${streak} days of consistency.`,
-            `Consistency is key. ${streak} days in a row!`
-        ];
+        let title = 'Streak Milestone!';
+        let message = '';
 
-        const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-        this.sendLocalNotification('Streak Milestone!', { body: randomMsg });
+        if (streak === 3) {
+            message = "Great start! You're building a powerful habit.";
+        } else if (streak === 7) {
+            message = "One full week of meditation. Your mind is getting stronger.";
+        } else if (streak === 14) {
+            message = "Two weeks of consistency. You're transforming your mindset.";
+        } else if (streak === 21) {
+            message = "Congratulations! You completed the Zenith program.";
+        } else if (streak > 1) {
+            const messages = [
+                `Amazing! You're on a ${streak}-day Zenith streak.`,
+                `Keep it up! ${streak} days of consistency.`,
+                `Consistency is key. ${streak} days in a row!`
+            ];
+            message = messages[Math.floor(Math.random() * messages.length)];
+        }
+
+        if (message) {
+            this.sendLocalNotification(title, { body: message });
+            this.logNotification('streak', 'in-app', message);
+        }
+    },
+
+    triggerRecoveryNotification(missedDays) {
+        if (!this.settings.enabled) return;
+
+        let message = '';
+        if (missedDays === 1) {
+            message = "Yesterday was busy. Let's restart today with a fresh breath.";
+        } else if (missedDays === 2) {
+            message = "It's never too late to continue your journey.";
+        } else if (missedDays >= 3) {
+            message = "Your meditation journey is always here for you. Start again today.";
+        }
+
+        if (message) {
+            this.sendLocalNotification('Zenith Recovery', { body: message });
+            this.logNotification('recovery', 'in-app', message);
+        }
     }
 };

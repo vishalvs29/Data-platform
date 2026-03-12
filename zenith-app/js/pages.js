@@ -43,6 +43,9 @@ const ZenithPages = {
                     ${ZenithComponents.moodSelector()}
                 </div>
 
+                <!-- Streak Widget -->
+                ${ZenithComponents.streakDisplay()}
+
                 <!-- Privacy Badge -->
                 <div style="padding: 0 16px 16px;">
                     ${ZenithComponents.privacyBadge()}
@@ -603,6 +606,9 @@ const ZenithPages = {
                     <div class="profile-hero-goal">${goalLabels[user.wellnessGoal] || user.wellnessGoal} · ${user.experienceLevel}</div>
                     <div class="profile-program-badge">${user.programType}-Day Program</div>
                 </div>
+
+                <!-- Streak Widget -->
+                ${ZenithComponents.streakDisplay()}
 
                 <!-- Stats Row -->
                 <div class="profile-stats-row">
