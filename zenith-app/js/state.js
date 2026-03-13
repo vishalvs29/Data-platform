@@ -18,7 +18,6 @@ const ZenithState = {
     playerPlaying: false,
     playerCaption: '',
     searchQuery: '',
-    customAudioFile: null, // Temporary Blob URL for uploaded MP3
     moodCheckIn: null, // Stores { preMood, preTags, timestamp }
     showMoodCheckIn: false,
     showMoodCheckOut: false,
@@ -74,14 +73,24 @@ const ZenithState = {
         this.selectedMood = mood;
         ZenithData.user.currentMood = mood;
 
+        const userId = window.ZenithAuth?.user?.id || ZenithData.user.id;
+        const entry = {
+            date: new Date().toISOString().split('T')[0],
+            pre: mood,
+            timestamp: new Date().toISOString()
+        };
+
+        // Update local memory so charts update immediately
+        ZenithData.user.moodHistory.push(entry);
+
         // Save to Supabase
-        if (window.ZenithSupabase) {
+        if (window.ZenithSupabase && userId) {
             window.ZenithSupabase
                 .from('mood_entries')
                 .insert({
-                    user_id: ZenithData.user.id,
-                    mood: mood,
-                    timestamp: new Date().toISOString()
+                    user_id: userId,
+                    pre_rating: mood,
+                    timestamp: entry.timestamp
                 })
                 .then(({ error }) => {
                     if (error) console.error('✦ Zenith: Error saving mood:', error.message);
@@ -118,7 +127,7 @@ const ZenithState = {
             this.notify();
         };
 
-        ZenithAudioEngine.start(sessionId, this.customAudioFile);
+        ZenithAudioEngine.start(sessionId);
 
         clearInterval(this.playerTimer);
         this.playerTimer = setInterval(() => {
@@ -285,12 +294,6 @@ const ZenithState = {
         if (key === 'duration') this.selectedDuration = value;
         if (key === 'category') this.selectedCategory = value;
         if (key === 'search') this.searchQuery = value;
-        this.notify();
-    },
-
-    clearCustomAudio() {
-        if (this.customAudioFile) URL.revokeObjectURL(this.customAudioFile);
-        this.customAudioFile = null;
         this.notify();
     },
 

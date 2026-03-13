@@ -51,9 +51,6 @@ const ZenithRouter = {
                 html = ZenithPages.active();
                 showNav = false;
                 break;
-            case 'insights':
-                html = ZenithPages.insights();
-                break;
             case 'analytics':
                 html = ZenithPages.analytics();
                 break;
@@ -89,32 +86,11 @@ const ZenithRouter = {
 
         // Update nav active state
         this.updateNavState();
-        this.updateNavBranding();
 
         // Scroll to top on page change
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
-    updateNavBranding() {
-        const platformBar = document.getElementById('nav-platform-bar');
-        const iconEl = document.getElementById('nav-platform-icon');
-        const nameEl = document.getElementById('nav-platform-name');
-
-        if (!platformBar || !iconEl || !nameEl) return;
-
-        const platform = ZenithData.platforms[ZenithState.currentPlatform];
-        if (platform) {
-            iconEl.textContent = platform.icon;
-            nameEl.textContent = platform.title;
-            platformBar.style.borderTop = `2px solid ${platform.themeColor}`;
-            platformBar.style.color = platform.themeColor;
-        } else {
-            iconEl.textContent = '✦';
-            nameEl.textContent = 'Zenith';
-            platformBar.style.borderTop = 'none';
-            platformBar.style.color = 'var(--text-muted)';
-        }
-    },
 
     updateNavState() {
         const navItems = document.querySelectorAll('.nav-item');

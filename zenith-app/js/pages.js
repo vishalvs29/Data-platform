@@ -164,39 +164,10 @@ const ZenithPages = {
                     </div>
                 </div>
 
-                <!-- Personal Session Upload -->
-                <div style="padding: 0 16px 16px;">
-                    <div class="info-card animate-fade-in-up" 
-                         style="margin-bottom: 24px; cursor: pointer; border: 2px dashed rgba(20, 184, 166, 0.3); background: rgba(20, 184, 166, 0.05); padding: 24px;"
-                         onclick="document.getElementById('audio-upload').click()">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <div class="pillar-icon" style="margin-bottom: 0; width: 44px; height: 44px; background: rgba(20, 184, 166, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--accent);">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                                </svg>
-                            </div>
-                            <div style="flex: 1;">
-                                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
-                                    ${ZenithState.customAudioFile ? 'MP3 Loaded: Custom Session' : 'Upload MP3 Narration'}
-                                </div>
-                                <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                                    Add real-time binaural beats to your own audio.
-                                </div>
-                            </div>
-                            ${ZenithState.customAudioFile ? `
-                                <button class="cta-button" style="padding: 8px 20px; font-size: 0.9rem;"
-                                        onclick="event.stopPropagation(); ZenithState.startSession('CUSTOM')">
-                                    Play
-                                </button>
-                            ` : ''}
-                        </div>
-                        <input type="file" id="audio-upload" hidden accept="audio/*" 
-                               onchange="ZenithState.setCustomAudio(this.files[0])">
-                    </div>
-                </div>
+                <!-- Category Tabs -->
 
                 <!-- Category Tabs -->
-                ${ZenithComponents.categoryTabs(selectedCategory)}
+                ${ZenithComponents.categoryTabs(selectedCategory, ZenithData.platforms[ZenithState.currentPlatform]?.categories)}
 
                 <!-- Duration Pills -->
                 ${ZenithComponents.durationPills(selectedDuration)}
@@ -528,7 +499,21 @@ const ZenithPages = {
     // ANALYTICS PAGE (Enterprise Dashboard)
     // ═══════════════════════════════════════════
     analytics() {
-        const data = ZenithData.analytics;
+        const user = ZenithData.user;
+        const mockData = ZenithData.analytics;
+
+        // Calculate real stats from user history
+        const moodPoints = user.moodHistory.map(m => m.post || m.pre || 5);
+        const avgMood = moodPoints.length ? (moodPoints.reduce((a, b) => a + b, 0) / moodPoints.length).toFixed(1) : 0;
+        const wellbeingScore = Math.min(100, Math.round(avgMood * 10));
+
+        // Format focus breakdown based on completed sessions
+        const categories = {};
+        user.completedSessions.forEach(id => {
+            const s = ZenithData.getSessionById(id);
+            if (s) categories[s.category] = (categories[s.category] || 0) + 1;
+        });
+        const focusBreakdown = Object.keys(categories).length ? categories : mockData.focusBreakdown;
 
         return `
             <div class="page-analytics page-enter">
@@ -539,7 +524,7 @@ const ZenithPages = {
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
                         ${ZenithComponents.privacyBadge()}
-                        <button onclick="ZenithState.logout()" 
+                        <button onclick="ZenithState.logout()"
                                 style="font-size:11px; color:var(--text-muted); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px 10px; cursor:pointer;">
                             Logout
                         </button>
@@ -549,63 +534,70 @@ const ZenithPages = {
                 <!-- Top Stats -->
                 <div class="analytics-stats stagger-children">
                     <div class="analytics-stat-card animate-fade-in-up">
-                        <div class="analytics-stat-value">${data.totalOrgSessions.toLocaleString()}</div>
+                        <div class="analytics-stat-value">${(user.totalSessions || 0).toLocaleString()}</div>
                         <div class="analytics-stat-label">Total Sessions</div>
-                        <div class="analytics-stat-trend trend-up">↑ ${data.weeklyGrowth}% this week</div>
+                        <div class="analytics-stat-trend trend-up">↑ Active now</div>
                     </div>
                     <div class="analytics-stat-card animate-fade-in-up">
-                        <div class="analytics-stat-value">${data.dailyActive}</div>
-                        <div class="analytics-stat-label">Daily Active</div>
-                        <div class="analytics-stat-trend trend-up">↑ 5% vs last week</div>
+                        <div class="analytics-stat-value">${user.currentStreak || 0}</div>
+                        <div class="analytics-stat-label">Day Streak</div>
+                        <div class="analytics-stat-trend trend-up">↑ Improving</div>
                     </div>
                 </div>
 
                 <div class="analytics-body">
+                    <!-- Weekly Mood Chart -->
+                    <div class="analytics-chart-card">
+                        ${ZenithComponents.moodChart(moodPoints.slice(-7), 340, 160)}
+                    </div>
+
                     <!-- Focus Breakdown -->
                     <div class="analytics-chart-card">
                         <div class="analytics-chart-title">Focus Breakdown</div>
-                        ${ZenithComponents.donutChart(data.focusBreakdown, data.wellbeingScore + '%', 'Wellbeing')}
+                        ${ZenithComponents.donutChart(focusBreakdown, wellbeingScore + '%', 'Wellbeing')}
                     </div>
 
                     <!-- Workforce Wellbeing -->
                     <div class="resilience-card">
-                        <h3>📊 Workforce Wellbeing Index</h3>
+                        <h3>📊 Your Wellbeing Index</h3>
                         <div style="display:flex;align-items:center;gap:16px;margin-top:12px;">
-                            <div style="font-size:2rem;font-weight:700;color:var(--accent);">${data.wellbeingScore}/100</div>
+                            <div style="font-size:2rem;font-weight:700;color:var(--accent);">${wellbeingScore}/100</div>
                             <div style="font-size:13px;color:var(--text-secondary);">
-                                Anonymous aggregated score across all users. 
-                                <span class="trend-up" style="font-size:13px;">↑ Improving</span>
+                                Calculated from your recent mood check-ins.
+                                <span class="trend-up" style="font-size:13px;">${wellbeingScore > 50 ? '↑ Positive' : '↓ Low'}</span>
                             </div>
-                        </div>
-                        <div style="margin-top:12px;font-size:13px;color:var(--text-muted);">
-                            <strong>ROI Indicators:</strong> 15% reduction in sick leave · 22% lower burnout reports · 18% improved focus scores (self-reported)
                         </div>
                     </div>
 
-                    <!-- Recent Org Sessions -->
+                    <!-- Recent Sessions -->
                     <div class="analytics-chart-card">
-                        <div class="analytics-chart-title">Recent Sessions</div>
+                        <div class="analytics-chart-title">Your Recent Practice</div>
                         <div class="recent-sessions-list stagger-children">
-                            ${data.recentOrgSessions.map(s => `
-                                <div class="session-card-mini animate-fade-in-up" style="cursor:default;">
-                                    <div class="session-card-mini-thumb thumb-gradient-${Math.floor(Math.random() * 7) + 1}" style="position:relative;width:48px;height:48px;">
+                            ${user.completedSessions.slice(-4).reverse().map(id => {
+            const s = ZenithData.getSessionById(id);
+            if (!s) return '';
+            return `
+                                    <div class="session-card-mini animate-fade-in-up" onclick="ZenithState.navigateTo('detail', { sessionId: '${s.id}' })">
+                                        <div class="session-card-mini-thumb ${s.thumbGradient}" style="position:relative;width:48px;height:48px;">
+                                            <div class="thumb-inner-icon" style="font-size:20px;">${s.thumbIcon}</div>
+                                        </div>
+                                        <div class="session-card-mini-info">
+                                            <div class="session-card-mini-title">${s.title}</div>
+                                            <div class="session-card-mini-sub">${s.duration}m · Completed</div>
+                                        </div>
+                                        <span class="session-card-duration">✓</span>
                                     </div>
-                                    <div class="session-card-mini-info">
-                                        <div class="session-card-mini-title">${s.title}</div>
-                                        <div class="session-card-mini-sub">${s.time} · ${s.participants} participants</div>
-                                    </div>
-                                    <span class="session-card-duration">${s.duration}m</span>
-                                </div>
-                            `).join('')}
+                                `;
+        }).join('')}
                         </div>
                     </div>
 
                     <!-- Enterprise Compliance -->
                     <div class="info-card">
-                        <div class="info-card-title">🔒 Enterprise Compliance</div>
+                        <div class="info-card-title">🔒 Privacy & Compliance</div>
                         <div class="info-card-text">
-                            All data shown is anonymized and aggregated. No individual employee data is accessible to administrators. 
-                            HIPAA-aligned encryption standards. Zero-knowledge architecture ensures complete user privacy.
+                            Your individual data is private and encrypted. No individual data is accessible to administrators. 
+                            Zenith follows strict HIPAA-aligned security protocols.
                         </div>
                     </div>
                 </div>

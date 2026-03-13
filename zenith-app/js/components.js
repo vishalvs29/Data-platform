@@ -7,11 +7,11 @@ const ZenithComponents = {
     // ── Mood Selector ──
     moodSelector() {
         const moods = [
-            { value: 5, emoji: '😊', label: 'Great' },
-            { value: 4, emoji: '🙂', label: 'Good' },
-            { value: 3, emoji: '😐', label: 'Okay' },
-            { value: 2, emoji: '😟', label: 'Low' },
-            { value: 1, emoji: '😰', label: 'Stressed' }
+            { value: 10, emoji: '😊', label: 'Great' },
+            { value: 8, emoji: '🙂', label: 'Good' },
+            { value: 6, emoji: '😐', label: 'Okay' },
+            { value: 4, emoji: '😟', label: 'Low' },
+            { value: 2, emoji: '😰', label: 'Stressed' }
         ];
 
         return `
@@ -146,10 +146,15 @@ const ZenithComponents = {
     },
 
     // ── Category Tabs ──
-    categoryTabs(selected) {
+    categoryTabs(selected, filteredCategories = null) {
+        let categories = ZenithData.categories;
+        if (filteredCategories) {
+            categories = categories.filter(c => c.id === 'all' || filteredCategories.includes(c.id));
+        }
+
         return `
             <div class="category-tabs">
-                ${ZenithData.categories.map(c => `
+                ${categories.map(c => `
                     <button class="category-tab ${selected === c.id ? 'active' : ''}"
                             onclick="ZenithState.setFilter('category', '${c.id}')">${c.icon} ${c.label}</button>
                 `).join('')}
@@ -173,7 +178,7 @@ const ZenithComponents = {
     // ── Mood Chart (SVG) ──
     moodChart(data, width = 320, height = 120) {
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const maxVal = 5;
+        const maxVal = 10;
         const padding = 30;
         const chartW = width - padding * 2;
         const chartH = height - padding;
@@ -201,8 +206,8 @@ const ZenithComponents = {
                         </linearGradient>
                     </defs>
                     <!-- Grid lines -->
-                    ${[0, 1, 2, 3, 4].map(i => {
-            const y = padding + chartH - (i + 1) / maxVal * chartH;
+                    ${[0, 2, 4, 6, 8, 10].map(i => {
+            const y = padding + chartH - i / maxVal * chartH;
             return `<line x1="${padding}" y1="${y}" x2="${padding + chartW}" y2="${y}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
         }).join('')}
                     <!-- Area fill -->

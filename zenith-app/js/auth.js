@@ -98,7 +98,7 @@ const ZenithAuth = {
     // ─────────────────────────────────────────────
     // LOGIN
     // ─────────────────────────────────────────────
-    async login(email, password) {
+    async login(email, password, redirectUrl = 'home.html') {
         this._showLoader();
         this._clearError();
 
@@ -124,7 +124,29 @@ const ZenithAuth = {
         ZenithAnalytics.track('login_success', { user_id: data.user.id, email });
 
         console.log('✦ Zenith Auth: Login successful for', email);
-        window.location.href = 'index.html';
+        window.location.href = redirectUrl;
+        return { success: true, data };
+    },
+
+    // ─────────────────────────────────────────────
+    // GOOGLE LOGIN
+    // ─────────────────────────────────────────────
+    async signInWithGoogle() {
+        this._showLoader();
+        const { data, error } = await window.ZenithSupabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin + '/zenith-app/home.html'
+            }
+        });
+
+        if (error) {
+            this._hideLoader();
+            this._showError(error.message);
+            console.error('✦ Zenith Auth: Google Login error:', error.message);
+            return { success: false, error };
+        }
+
         return { success: true, data };
     },
 
@@ -193,7 +215,7 @@ const ZenithAuth = {
     // Called after user clicks the email link and
     // is redirected back with a valid session.
     // ─────────────────────────────────────────────
-    async updatePassword(newPassword) {
+    async updatePassword(newPassword, redirectUrl = 'home.html') {
         this._showLoader();
         this._clearError();
 
@@ -211,7 +233,7 @@ const ZenithAuth = {
 
         ZenithAnalytics.track('password_updated', { user_id: data.user.id });
         this._showSuccess('Password updated successfully. Redirecting to app...');
-        setTimeout(() => window.location.href = 'index.html', 2000);
+        setTimeout(() => window.location.href = redirectUrl, 2000);
         return { success: true };
     },
 

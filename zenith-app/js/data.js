@@ -10,8 +10,9 @@ const ZenithData = {
             id: 'schools',
             title: 'Schools & Colleges',
             icon: '🎓',
-            description: 'Mental wellness, emotional regulation, and focus training designed for students and educators.',
+            description: 'Mental wellness support for students including focus training, exam stress relief, emotional regulation, and sleep support.',
             themeColor: '#10b981', // Emerald
+            categories: ['focus', 'anxiety', 'examFear', 'stress', 'sleep'],
             features: [
                 'Student Mental Wellness',
                 'Daily Mood Check',
@@ -23,10 +24,11 @@ const ZenithData = {
         },
         corporate: {
             id: 'corporate',
-            title: 'Corporate',
+            title: 'Corporate Leaders',
             icon: '🏢',
-            description: 'Stress management, burnout recovery, and peak performance training for professionals.',
+            description: 'Programs designed for professionals to improve focus, reduce stress, prevent burnout, and enhance performance.',
             themeColor: '#14b8a6', // Teal
+            categories: ['focus', 'relaxation', 'stress', 'sleep'],
             features: [
                 'Burnout Recovery',
                 'Focus Training',
@@ -37,10 +39,11 @@ const ZenithData = {
         },
         government: {
             id: 'government',
-            title: 'Government',
-            icon: '⚖️',
-            description: 'Mental clarity, emotional resilience, and decision-making support for public sector leaders.',
+            title: 'Government Employees',
+            icon: '🏛️',
+            description: 'Mental clarity and resilience programs designed for public service professionals managing high responsibility.',
             themeColor: '#6366f1', // Indigo
+            categories: ['focus', 'stress', 'mentalClarity', 'sleep'],
             features: [
                 'Decision Clarity',
                 'Stress Regulation',
@@ -50,10 +53,11 @@ const ZenithData = {
         },
         defense: {
             id: 'defense',
-            title: 'Police & Military',
+            title: 'Police & Military personnel',
             icon: '⚔️',
-            description: 'Trauma recovery, nervous system regulation, and resilience training for high-stress operational roles.',
+            description: 'Trauma-informed practices, nervous system regulation, stress recovery, and operational resilience.',
             themeColor: '#f59e0b', // Amber
+            categories: ['stressRecovery', 'focus', 'sleepRecovery', 'emotionalRegulation'],
             features: [
                 'Trauma-informed Meditation',
                 'Combat Stress Recovery',
@@ -70,10 +74,16 @@ const ZenithData = {
     // ── Categories ──
     categories: [
         { id: 'all', label: 'All', icon: '✦' },
+        { id: 'focus', label: 'Focus', icon: '🎯' },
         { id: 'stress', label: 'Stress', icon: '⚡' },
         { id: 'sleep', label: 'Sleep', icon: '🌙' },
         { id: 'anxiety', label: 'Anxiety', icon: '🌊' },
-        { id: 'focus', label: 'Focus', icon: '🎯' },
+        { id: 'examFear', label: 'Exam Fear', icon: '📚' },
+        { id: 'relaxation', label: 'Relaxation', icon: '🏖️' },
+        { id: 'mentalClarity', label: 'Mental Clarity', icon: '💎' },
+        { id: 'stressRecovery', label: 'Stress Recovery', icon: '🛡️' },
+        { id: 'sleepRecovery', label: 'Sleep Recovery', icon: '🛌' },
+        { id: 'emotionalRegulation', label: 'Regulation', icon: '⚖️' },
         { id: 'burnout', label: 'Burnout', icon: '🔥' },
         { id: 'depression', label: 'Depression', icon: '☀️' }
     ],
@@ -660,6 +670,12 @@ const ZenithData = {
         let filtered = this.sessions;
         if (duration) filtered = filtered.filter(s => s.duration === duration);
         if (category && category !== 'all') filtered = filtered.filter(s => s.category === category);
+
+        // Final platform safety filter
+        if (ZenithState.currentPlatform) {
+            filtered = filtered.filter(s => s.platforms && s.platforms.includes(ZenithState.currentPlatform));
+        }
+
         return filtered;
     },
 
