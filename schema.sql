@@ -1,4 +1,4 @@
--- SQL Schema for OnSpace & Zenith Apps (Supabase)
+-- SQL Schema for OnSpace & DrMindit Apps (Supabase)
 
 -- 1. User Profiles Table
 CREATE TABLE IF NOT EXISTS public.user_profiles (

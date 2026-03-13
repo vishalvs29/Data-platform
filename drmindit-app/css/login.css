@@ -1,0 +1,184 @@
+/* ============================================================
+   DRMINDIT LOGIN PAGE STYLES
+   Industrial-Grade, Secure, High-Trust UI
+   ============================================================ */
+
+@import url('design-system.css');
+
+.login-page {
+    background: #05070a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-2xl);
+    padding: 48px;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-accent);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.login-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.login-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.login-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+/* ── SSO Button ── */
+.sso-button {
+    width: 100%;
+    padding: 14px;
+    background: #fff;
+    color: #000;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 32px;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.sso-button:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Input Fields ── */
+.input-group {
+    margin-bottom: 24px;
+}
+
+.input-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-field {
+    width: 100%;
+    height: 52px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: 0 16px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.input-field:focus {
+    border-color: var(--accent);
+    background: rgba(20, 184, 166, 0.05);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+}
+
+.login-btn {
+    width: 100%;
+    height: 52px;
+    background: var(--gradient-accent);
+    color: #fff;
+    border-radius: var(--radius-lg);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 12px;
+    box-shadow: var(--shadow-glow);
+    transition: all 0.3s;
+}
+
+.login-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-glow-lg);
+}
+
+.login-footer {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.login-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.security-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--success);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 40px;
+}
