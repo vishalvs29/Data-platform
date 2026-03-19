@@ -34,6 +34,10 @@ const DrMinditAuth = {
             this.user = session.user;
             console.log('✦ DrMindit Auth: Session restored for', session.user.email);
             await this._loadProfile(session.user.id);
+
+            // ── Recover interrupted session ──
+            this._recoverInterruptedSession();
+
             if (window.DrMinditNotifications) {
                 await DrMinditNotifications.init();
             }
@@ -46,6 +50,13 @@ const DrMinditAuth = {
             this.user = session ? session.user : null;
             console.log('✦ DrMindit Auth State:', event);
 
+            if (event === 'SIGNED_IN') {
+                // After Google OAuth callback, redirect to dashboard if on login page
+                if (window.location.pathname.includes('login.html') || window.location.protocol === 'file:') {
+                    const redirectUrl = (new URLSearchParams(window.location.search)).get('redirect') || 'dashboard.html';
+                    window.location.href = redirectUrl;
+                }
+            }
             if (event === 'SIGNED_OUT') {
                 window.location.href = 'landing.html';
             }
@@ -132,22 +143,38 @@ const DrMinditAuth = {
     // GOOGLE LOGIN
     // ─────────────────────────────────────────────
     async signInWithGoogle() {
+        console.log('✦ DrMindit Auth: Initiating Google OAuth...');
         this._showLoader();
-        const { data, error } = await window.DrMinditSupabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: window.location.origin + "/dashboard"
-            }
-        });
+        this._clearError();
+        try {
+            // Build a safe redirect URL: file:// protocol can't be used as OAuth redirect,
+            // so we point to the Supabase callback URL and rely on auth state change.
+            const isLocalFile = window.location.protocol === 'file:';
+            const redirectTo = isLocalFile
+                ? undefined  // Let Supabase use its default callback
+                : (window.location.origin + '/dashboard.html');
 
-        if (error) {
-            this._hideLoader();
-            this._showError(error.message);
+            const options = {
+                provider: 'google',
+                options: {
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'select_account'
+                    }
+                }
+            };
+            if (redirectTo) options.options.redirectTo = redirectTo;
+
+            const { data, error } = await window.DrMinditSupabase.auth.signInWithOAuth(options);
+
+            if (error) throw error;
+            return { success: true, data };
+        } catch (error) {
             console.error('✦ DrMindit Auth: Google Login error:', error.message);
+            this._hideLoader();
+            this._showError('Google Sign-In failed: ' + error.message);
             return { success: false, error };
         }
-
-        return { success: true, data };
     },
 
     // ─────────────────────────────────────────────
@@ -304,10 +331,10 @@ const DrMinditAuth = {
 
         // 3. Load recently completed sessions for history dots
         const { data: sessions } = await window.DrMinditSupabase
-            .from('session_records')
-            .select('session_id, completed, started_at')
+            .from('user_sessions')
+            .select('session_id, completion_status, started_at')
             .eq('user_id', userId)
-            .eq('completed', true)
+            .eq('completion_status', true)
             .order('started_at', { ascending: false })
             .limit(50);
 
@@ -430,5 +457,27 @@ const DrMinditAuth = {
         if (el) el.style.display = 'none';
         const s = document.getElementById('auth-success');
         if (s) s.style.display = 'none';
+    },
+
+    async _recoverInterruptedSession() {
+        const savedSync = localStorage.getItem('drmindit_active_sync');
+        if (!savedSync) return;
+
+        try {
+            const { id, elapsed, ts } = JSON.parse(savedSync);
+            // If less than 1 hour old, we can potentially sync it one last time if it was never marked completed
+            if (Date.now() - ts < 3600000) {
+                console.log('✦ DrMindit Auth: Found interrupted session to sync:', id);
+                await window.DrMinditSupabase
+                    .from('user_sessions')
+                    .update({ completed_seconds: Math.floor(elapsed) })
+                    .eq('id', id)
+                    .eq('completion_status', false);
+            }
+        } catch (e) {
+            console.error('✦ DrMindit Auth: Recovery failed:', e);
+        } finally {
+            localStorage.removeItem('drmindit_active_sync');
+        }
     }
 };

@@ -31,6 +31,11 @@
             DrMinditRouter.init();
         }
 
+        // Fetch dynamic sessions from Supabase
+        if (window.DrMinditData) {
+            await DrMinditData.fetchDBSessions();
+        }
+
         // Bottom nav click handlers
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {

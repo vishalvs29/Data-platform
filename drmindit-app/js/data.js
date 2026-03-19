@@ -106,12 +106,26 @@ const DrMinditData = {
         // 5-MINUTE SESSIONS
         // ═══════════════════════════════════════════
         {
+            id: 's34-1',
+            title: 'Grounding the Mind',
+            duration: 34,
+            category: 'focus',
+            level: 'Intermediate',
+            therapist: 'raj',
+            audio_url: 'assets/audio/sessions/s34-1.mp3',
+            thumbGradient: 'grad-focus',
+            thumbIcon: '🌱',
+            description: 'A deep immersion into grounding techniques to stabilize the mind and body. Perfect for transitions or when feeling overwhelmed by external stimuli.',
+            tags: ['grounding', 'focus', 'stability']
+        },
+        {
             id: 's5-1',
             title: 'Immediate Calming Breath Reset',
             duration: 5,
             category: 'stress',
             level: 'Beginner',
             therapist: 'raj',
+            audio_url: 'assets/audio/sessions/s5-1.mp3',
             thumbGradient: 'thumb-gradient-1',
             thumbIcon: '🌬️',
             description: 'A rapid-response breathing protocol designed for high-pressure moments. Uses the physiological sigh technique to activate your parasympathetic nervous system within 90 seconds, bringing immediate calm between meetings or after stressful interactions.',
@@ -148,6 +162,7 @@ const DrMinditData = {
             category: 'stress',
             level: 'Beginner',
             therapist: 'sarah',
+            audio_url: 'assets/audio/sessions/s5-3.mp3',
             thumbGradient: 'thumb-gradient-3',
             thumbIcon: '🔄',
             description: 'A post-conflict recovery protocol for after a tense email exchange, disagreement with a colleague, or frustrating meeting. Processes the emotional residue and restores your professional composure.',
@@ -260,6 +275,7 @@ const DrMinditData = {
             category: 'focus',
             level: 'Beginner',
             therapist: 'raj',
+            audio_url: 'assets/audio/sessions/s15-3.mp3',
             thumbGradient: 'thumb-gradient-2',
             thumbIcon: '💎',
             description: 'A cognitive refresh designed for the afternoon slump or after sustained periods of concentration. Uses attention-switching exercises and micro-meditation to restore depleted executive function.',
@@ -628,7 +644,10 @@ const DrMinditData = {
 
         let session = this.sessions.find(s => s.id === id);
 
-        // Check in ResilienceProgramData if not found in standard sessions
+        // Check in dbSessions if not found
+        if (!session) {
+            session = this.dbSessions.find(s => s.id === id);
+        }
         if (!session && typeof ResilienceProgramData !== 'undefined') {
             const resSession = ResilienceProgramData.find(s => s.id === id);
             if (resSession) {
@@ -667,7 +686,7 @@ const DrMinditData = {
     },
 
     getFilteredSessions(duration, category) {
-        let filtered = this.sessions;
+        let filtered = [...this.sessions, ...this.dbSessions];
         if (duration) filtered = filtered.filter(s => s.duration === duration);
         if (category && category !== 'all') filtered = filtered.filter(s => s.category === category);
 
@@ -679,9 +698,56 @@ const DrMinditData = {
         return filtered;
     },
 
+    // ── Database Backed Sessions (Fetched at runtime) ──
+    dbSessions: [],
+
+    async fetchDBSessions() {
+        if (!window.DrMinditSupabase) return [];
+
+        console.log('✦ DrMindit: Fetching dynamic sessions...');
+        const { data, error } = await window.DrMinditSupabase
+            .from('meditation_sessions')
+            .select('*')
+            .order('day_number', { ascending: true });
+
+        if (error) {
+            console.error('✦ DrMindit: Error fetching sessions:', error.message);
+            return [];
+        }
+
+        // Map DB sessions to the application format
+        this.dbSessions = data.map(s => ({
+            id: `db-${s.id}`,
+            db_id: s.id,
+            title: s.session_title,
+            duration: s.duration || 10,
+            day_number: s.day_number,
+            audio_url: s.audio_url,
+            category: 'relaxation',
+            level: 'Intermediate',
+            therapist: 'sarah',
+            thumbGradient: 'thumb-gradient-4',
+            thumbIcon: '🎬',
+            description: `Day ${s.day_number}: ${s.session_title}. A specialized practice streamed directly from Google Drive.`,
+            techniques: ['Guided Meditation', 'Breathwork'],
+            voiceTone: 'Professional Narration',
+            tags: ['Premium', 'Dynamic', 'Daily'],
+            platforms: ['corporate', 'schools', 'government', 'defense']
+        }));
+
+        console.log(`✦ DrMindit: Loaded ${this.dbSessions.length} dynamic sessions.`);
+        return this.dbSessions;
+    },
+
     getFeaturedSession() {
         // Time-aware featured session
         const hour = new Date().getHours();
+
+        // Prefer dynamic sessions if available
+        if (this.dbSessions.length > 0 && hour > 6 && hour < 20) {
+            return this.dbSessions[0];
+        }
+
         if (hour >= 20 || hour < 6) return this.getSessionById('s60-1');
         if (hour >= 6 && hour < 9) return this.getSessionById('s15-3');
         if (hour >= 14 && hour < 17) return this.getSessionById('s21-1');

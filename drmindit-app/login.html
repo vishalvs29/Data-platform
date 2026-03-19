@@ -302,7 +302,7 @@
             getRedirectUrl() {
                 const params = new URLSearchParams(window.location.search);
                 const platform = params.get('platform');
-                return platform ? `/dashboard#${platform}` : '/dashboard';
+                return platform ? `dashboard.html#${platform}` : 'dashboard.html';
             },
 
             showTab(tab) {

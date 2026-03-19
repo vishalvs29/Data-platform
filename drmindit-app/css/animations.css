@@ -89,6 +89,50 @@
     }
 }
 
+/*
+ * Premium 14s Breathing Cycle: 4s Inhale, 4s Hold, 6s Exhale
+ * As % of 14s: 28.57% = 4s, 57.14% = 8s (end hold), 100% = 14s
+ */
+@keyframes premiumBreathe {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+        box-shadow: 0 0 30px rgba(20, 184, 166, 0.4);
+    }
+
+    28.5% {
+        transform: scale(1.3);
+        opacity: 1;
+        box-shadow: 0 0 60px rgba(20, 184, 166, 0.7);
+    }
+
+    57.1% {
+        transform: scale(1.3);
+        opacity: 1;
+        box-shadow: 0 0 60px rgba(20, 184, 166, 0.7);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+        box-shadow: 0 0 30px rgba(20, 184, 166, 0.4);
+    }
+}
+
+@keyframes orbGlowPulse {
+
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(1.5);
+    }
+}
+
 @keyframes breathingPulse {
     0% {
         transform: scale(1);

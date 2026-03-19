@@ -10,22 +10,31 @@ const DrMinditPages = {
     // ═══════════════════════════════════════════
     // GATEWAY PAGE
     // ═══════════════════════════════════════════
+    // ── GATEWAY PAGE ──
     gateway() {
+        const platformsToShow = ['schools', 'corporate'];
+        const platforms = Object.values(DrMinditData.platforms).filter(p => platformsToShow.includes(p.id));
+
         return `
-            <div class="gateway-container animate-fade-in">
-                <header class="text-center" style="margin-bottom: 48px;">
-                    <div class="logo-large" style="margin-bottom: 24px;">✦ DrMindit</div>
-                    <h1 class="section-title">Select Your Platform</h1>
-                    <p class="section-subtitle">Choose the specialized mental performance experience designed for your role.</p>
+            <div class="page-gateway animate-fade-in">
+                <header class="gateway-header-premium">
+                    <div class="logo-premium animate-fade-down">✦ DrMindit</div>
+                    <h1 class="gateway-headline animate-fade-up">Select Your Platform</h1>
+                    <p class="gateway-subtext animate-fade-up" style="animation-delay: 0.1s;">
+                        Choose the specialized mental performance experience designed for your role.
+                    </p>
                 </header>
 
-                <div class="gateway-grid">
-                    ${Object.values(DrMinditData.platforms).map(p => DrMinditComponents.gatewayCard(p)).join('')}
+                <div class="gateway-grid-refined">
+                    ${platforms.map(p => DrMinditComponents.gatewayCard(p)).join('')}
                 </div>
                 
-                <div style="text-align: center; margin-top: 60px; color: var(--text-muted); font-size: 0.8rem;">
-                    DrMindit Performance Ecosystem · E2E Encrypted · Professional Grade
-                </div>
+                <footer class="gateway-footer-refined animate-fade-in" style="animation-delay: 0.5s;">
+                    <div class="footer-divider"></div>
+                    <div class="footer-note">
+                        DrMindit Performance Ecosystem · E2E Encrypted · Professional Grade
+                    </div>
+                </footer>
             </div>
         `;
     },

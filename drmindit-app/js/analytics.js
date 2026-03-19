@@ -67,10 +67,10 @@ const DrMinditAnalytics = {
 
         const [sessionsRes, moodRes, streakRes] = await Promise.all([
             window.DrMinditSupabase
-                .from('session_records')
-                .select('duration_minutes, completed, category, completed_at')
+                .from('user_sessions')
+                .select('session_duration, completion_status, completed_at')
                 .eq('user_id', userId)
-                .eq('completed', true),
+                .eq('completion_status', true),
 
             window.DrMinditSupabase
                 .from('mood_entries')

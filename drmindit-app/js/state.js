@@ -12,6 +12,10 @@ const DrMinditState = {
     selectedDuration: null,
     selectedCategory: 'all',
     calmNowActive: false,
+    showMoodCheckIn: false,
+    showMoodCheckOut: false,
+    showExitConfirmation: false, // New flag for the confirmation modal
+    playerControlsVisible: true, // New flag for auto-hide controls
     calmNowTimer: null,
     playerTimer: null,
     playerElapsed: 0,
@@ -19,11 +23,11 @@ const DrMinditState = {
     playerCaption: '',
     searchQuery: '',
     moodCheckIn: null, // Stores { preMood, preTags, timestamp }
-    showMoodCheckIn: false,
-    showMoodCheckOut: false,
     resilienceDay: 1, // Current active day of the 21-day program
     resilienceProgress: {}, // Map of day number to completion status: { 1: true, 2: false, ... }
     currentPlatform: null, // null = Gateway, 'schools', 'corporate', 'government', 'defense'
+    narrationError: null, // Error message if audio fails
+    playbackRate: 1.0, // Default playback rate
 
     listeners: [],
 
@@ -33,6 +37,22 @@ const DrMinditState = {
 
     notify() {
         this.listeners.forEach(fn => fn(this));
+        this._renderMiniPlayer();
+    },
+
+    _renderMiniPlayer() {
+        const container = document.getElementById('mini-player-container');
+        if (!container) return;
+
+        const shouldShow = this.activeSessionId && this.currentPage !== 'active' && !this.calmNowActive;
+
+        if (shouldShow) {
+            container.innerHTML = DrMinditComponents.miniPlayer();
+            container.classList.remove('hidden');
+        } else {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+        }
     },
 
     switchPlatform(platformId) {
@@ -101,61 +121,231 @@ const DrMinditState = {
         this.notify();
     },
 
-    startSession(sessionId) {
+    async startSession(sessionId, forceRestart = false) {
+        const session = DrMinditData.getSessionById(sessionId);
+        let startAtSeconds = 0;
+
+        // 1. Auto-Resume Logic
+        if (!forceRestart && window.DrMinditSupabase) {
+            const userId = window.DrMinditAuth?.user?.id || DrMinditData.user.id;
+            try {
+                // Check for most recent unfinished session
+                const { data, error } = await window.DrMinditSupabase
+                    .from('user_sessions')
+                    .select('completed_seconds')
+                    .eq('user_id', userId)
+                    .eq('session_id', sessionId)
+                    .eq('completion_status', false)
+                    .order('started_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (data && data.completed_seconds > 10) {
+                    // Logic: If user has > 10s progress, ask or just resume
+                    // For "immersive/minimal" we resume automatically but show a toast eventually?
+                    // Let's resume automatically for now as requested.
+                    startAtSeconds = data.completed_seconds;
+                    console.log(`✦ DrMindit: Auto-resuming from ${startAtSeconds}s`);
+                }
+            } catch (err) {
+                console.warn('✦ DrMindit: Auto-resume check failed:', err);
+            }
+        }
+
         this.activeSessionId = sessionId;
-        this.playerElapsed = 0;
+        this.playerElapsed = startAtSeconds;
         this.playerPlaying = true;
         this.playerCaption = '';
+        this.narrationError = null;
         this.currentPage = 'active';
-        const session = DrMinditData.getSessionById(sessionId);
-        const totalSeconds = session.duration * 60;
+        this.dbSessionId = null;
+
+        let totalSeconds = session.duration * 60;
+
+        // 2. Create session record in database
+        if (window.DrMinditSupabase) {
+            const userId = window.DrMinditAuth?.user?.id || DrMinditData.user.id;
+            try {
+                const { data, error } = await window.DrMinditSupabase
+                    .from('user_sessions')
+                    .insert({
+                        user_id: userId,
+                        session_id: sessionId,
+                        session_title: session.title,
+                        session_duration: session.duration,
+                        completed_seconds: startAtSeconds,
+                        completion_status: false,
+                        started_at: new Date().toISOString()
+                    })
+                    .select('id')
+                    .single();
+
+                if (data) {
+                    this.dbSessionId = data.id;
+                    console.log('✦ DrMindit: Session record created:', this.dbSessionId);
+                }
+            } catch (err) { }
+        }
 
         // Initialize audio engine
         DrMinditAudioEngine.onCaptionUpdate = (caption) => {
             this.playerCaption = caption;
+            this._updateSessionCaption(caption);
+        };
+
+        DrMinditAudioEngine.onNarrationError = (errorMsg) => {
+            this.narrationError = errorMsg;
+            this.playerPlaying = false;
             this.notify();
         };
 
-        // Handle MP3 time updates if applicable
         DrMinditAudioEngine.onTimeUpdate = (current, duration) => {
-            this.playerElapsed = Math.floor(current);
-            // Dynamic totalSeconds if it's an MP3
-            const totalSeconds = Math.floor(duration);
-            if (this.playerElapsed >= totalSeconds) {
-                this.stopSession();
+            if (duration && !isNaN(duration)) {
+                totalSeconds = Math.floor(duration);
             }
-            this.notify();
+            this.playerElapsed = Math.floor(current);
+
+            if (this.playerElapsed >= totalSeconds && totalSeconds > 0) {
+                this.stopSession();
+            } else {
+                this._updateSessionPlayerUI(totalSeconds);
+            }
         };
 
-        DrMinditAudioEngine.start(sessionId);
+        DrMinditAudioEngine.start(sessionId, startAtSeconds);
 
+        // Local UI timer (fallback)
         clearInterval(this.playerTimer);
         this.playerTimer = setInterval(() => {
-            if (this.playerPlaying) {
+            if (this.playerPlaying && !DrMinditAudioEngine.narrationPlayer) {
                 this.playerElapsed++;
                 if (this.playerElapsed >= totalSeconds) {
                     this.stopSession();
+                } else {
+                    this._updateSessionPlayerUI(totalSeconds);
                 }
-                this.notify();
             }
         }, 1000);
+
+        // Periodic Database Sync
+        clearInterval(this._sessionSyncInterval);
+        this._sessionSyncInterval = setInterval(() => {
+            if (this.playerPlaying && this.dbSessionId) {
+                this._syncActiveSessionProgress();
+            }
+        }, 15000);
+
         this.notify();
+    },
+
+    setPlaybackRate(rate) {
+        this.playbackRate = rate;
+        DrMinditAudioEngine.setPlaybackRate(rate);
+
+        // Update direct UI label if exists
+        const speedLabel = document.getElementById('player-speed-label');
+        if (speedLabel) speedLabel.textContent = `${rate}x`;
     },
 
     togglePlayer() {
         this.playerPlaying = !this.playerPlaying;
         if (this.playerPlaying) {
             DrMinditAudioEngine.resume();
+            document.querySelectorAll('.breathing-orb-minimal, .player-orb-glow').forEach(el => el.classList.add('active', 'breathe'));
+            document.querySelectorAll('.waveform-bar').forEach(el => el.classList.add('playing'));
         } else {
             DrMinditAudioEngine.pause();
+            document.querySelectorAll('.breathing-orb-minimal, .player-orb-glow').forEach(el => el.classList.remove('active', 'breathe'));
+            document.querySelectorAll('.waveform-bar').forEach(el => el.classList.remove('playing'));
         }
-        this.notify();
+        // Update play/pause button icon directly
+        const mainBtn = document.querySelector('.ctrl-btn-main');
+        if (mainBtn) {
+            mainBtn.classList.toggle('playing', this.playerPlaying);
+            const iconWrap = mainBtn.querySelector('.icon-wrap');
+            if (iconWrap) {
+                iconWrap.innerHTML = this.playerPlaying
+                    ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+                    : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+            }
+        }
+    },
+
+    _updateSessionPlayerUI(totalSeconds) {
+        const timeEl = document.getElementById('player-time-current');
+        const ringEl = document.getElementById('player-ring-fill');
+        const sliderEl = document.getElementById('player-scrubber-slider');
+        const fillEl = document.getElementById('player-scrubber-fill');
+        const orbLabelEl = document.getElementById('orb-breath-label');
+        const playerContainer = document.querySelector('.audio-player-container');
+
+        const formatTime = (s) => {
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+        };
+
+        if (timeEl) timeEl.textContent = formatTime(this.playerElapsed);
+
+        const progress = totalSeconds > 0 ? this.playerElapsed / totalSeconds : 0;
+
+        // 1. Update Premium Progress Ring
+        if (ringEl) {
+            const radius = 120; // Matches components.js
+            const circumference = 2 * Math.PI * radius;
+            ringEl.style.strokeDashoffset = circumference - progress * circumference;
+        }
+
+        // 2. Update Premium Scrubber
+        if (sliderEl) sliderEl.value = this.playerElapsed;
+        if (fillEl) fillEl.style.width = `${progress * 100}%`;
+
+        // 3. Update Breathing labels and Phase classes
+        if (this.playerPlaying) {
+            const cyclePos = this.playerElapsed % 14;
+            let label = 'Inhale';
+            let phase = 'phase-inhale';
+
+            if (cyclePos >= 4 && cyclePos < 8) {
+                label = 'Hold';
+                phase = 'phase-hold';
+            } else if (cyclePos >= 8) {
+                label = 'Exhale';
+                phase = 'phase-exhale';
+            }
+
+            if (orbLabelEl) orbLabelEl.textContent = label;
+
+            if (playerContainer) {
+                playerContainer.classList.remove('phase-inhale', 'phase-hold', 'phase-exhale');
+                playerContainer.classList.add(phase);
+            }
+        }
+
+        // Update Mini Player if visible
+        const miniProgress = document.querySelector('.mini-player-progress');
+        if (miniProgress) {
+            miniProgress.style.width = `${progress * 100}%`;
+        }
+    },
+
+    _updateSessionCaption(text) {
+        const captionEl = document.getElementById('player-caption-text');
+        if (captionEl) {
+            captionEl.style.opacity = 0;
+            setTimeout(() => {
+                captionEl.textContent = text || 'Centering your focus...';
+                captionEl.style.opacity = 1;
+            }, 300);
+        }
     },
 
     seekTo(seconds) {
-        this.playerElapsed = seconds;
-        DrMinditAudioEngine.seek(seconds);
-        this.notify();
+        this.playerElapsed = parseInt(seconds, 10);
+        DrMinditAudioEngine.seek(this.playerElapsed);
+        // Update UI directly — no full re-render needed
+        const session = this.activeSessionId ? DrMinditData.getSessionById(this.activeSessionId) : null;
+        if (session) this._updateSessionPlayerUI(session.duration * 60);
     },
 
     skipForward() {
@@ -168,13 +358,31 @@ const DrMinditState = {
         this.seekTo(prevTime);
     },
 
-    stopSession() {
+    async stopSession() {
+        clearInterval(this._sessionSyncInterval);
+
         if (this.activeSessionId) {
             const session = DrMinditData.getSessionById(this.activeSessionId);
             const duration = Math.floor(this.playerElapsed / 60);
             const completed = this.playerElapsed >= (session.duration * 60 * 0.9); // 90% = completed
 
-            // Track analytics event
+            // 1. Final Update to Database
+            if (window.DrMinditSupabase && this.dbSessionId) {
+                try {
+                    await window.DrMinditSupabase
+                        .from('user_sessions')
+                        .update({
+                            completed_seconds: Math.floor(this.playerElapsed),
+                            completion_status: completed,
+                            completed_at: completed ? new Date().toISOString() : null
+                        })
+                        .eq('id', this.dbSessionId);
+                } catch (err) {
+                    console.error('✦ DrMindit: Final session sync failed:', err);
+                }
+            }
+
+            // 2. Track analytics event
             if (window.DrMinditAnalytics) {
                 DrMinditAnalytics.track('session_ended', {
                     session_id: this.activeSessionId,
@@ -185,81 +393,63 @@ const DrMinditState = {
                 });
             }
 
-            // Save session record to Supabase (extended schema)
-            if (window.DrMinditSupabase && duration > 0) {
-                const userId = window.DrMinditAuth?.user?.id || DrMinditData.user.id;
-                window.DrMinditSupabase
-                    .from('session_records')
-                    .insert({
-                        user_id: userId,
-                        session_id: this.activeSessionId,
-                        session_title: session.title,
-                        category: session.category,
-                        duration_minutes: duration,
-                        completed: completed,
-                        completed_at: completed ? new Date().toISOString() : null,
-                        started_at: new Date(Date.now() - this.playerElapsed * 1000).toISOString()
-                    })
-                    .then(({ error }) => {
-                        if (error) console.error('✦ DrMindit: Error saving session_record:', error.message);
-                        else console.log('✦ DrMindit: session_record saved.');
-                    });
-
-                // Legacy table writes for backward compatibility
-                const table = session.category === 'sleep' ? 'sleep_sessions' : 'focus_sessions';
-                const payload = {
-                    user_id: userId,
-                    date: new Date().toISOString().split('T')[0],
-                    notes: `Completed DrMindit session: ${session.title}`
-                };
-                if (table === 'sleep_sessions') {
-                    payload.hours = parseFloat((duration / 60).toFixed(2));
-                    payload.quality = 'Good';
-                } else {
-                    payload.duration_minutes = duration;
-                    payload.activity = session.title;
+            // 3. Update stats and progress
+            if (completed) {
+                if (!DrMinditData.user.completedSessions.includes(this.activeSessionId)) {
+                    DrMinditData.user.completedSessions.push(this.activeSessionId);
                 }
-                window.DrMinditSupabase.from(table).upsert(payload).then(({ error }) => {
-                    if (error) console.error(`✦ DrMindit: Error saving ${table}:`, error.message);
-                });
+                await this.updatePracticeStats(duration || 1);
 
-                // Update user stats in DB profile
-                if (window.DrMinditAnalytics) {
-                    DrMinditAnalytics.updateUserStats(userId, { duration });
+                // Resilience Program logic
+                if (this.activeSessionId.startsWith('res-d')) {
+                    const dayNum = parseInt(this.activeSessionId.replace('res-d', ''));
+                    this.completeResilienceDay(dayNum);
                 }
             }
 
-            // Update in-memory stats immediately
-            this.updatePracticeStats(duration);
-
-            // If it's a resilience session and marked completed, advance the program
-            if (completed && this.activeSessionId.startsWith('res-d')) {
-                const dayNum = parseInt(this.activeSessionId.replace('res-d', ''));
-                this.completeResilienceDay(dayNum);
-            }
-
-            // Auto-trigger post-session mood check-out if check-in was done
+            // Show post-session mood check if applicable
             if (this.moodCheckIn) {
                 this.showMoodCheckOut = true;
             }
 
-            // Trigger streak motivation if applicable
             if (completed && window.DrMinditNotifications) {
                 DrMinditNotifications.triggerStreakMotivation(DrMinditData.user.currentStreak);
             }
         }
 
-        clearInterval(this.playerTimer);
         DrMinditAudioEngine.stop();
-        this.playerPlaying = false;
         this.activeSessionId = null;
+        this.playerPlaying = false;
         this.playerCaption = '';
+        clearInterval(this.playerTimer);
+        this.dbSessionId = null;
 
-        // Only navigate away if mood check-out isn't pending
         if (!this.showMoodCheckOut) {
             this.currentPage = this.previousPage || 'home';
         }
         this.notify();
+    },
+
+    async _syncActiveSessionProgress() {
+        if (!this.dbSessionId || !window.DrMinditSupabase) return;
+
+        try {
+            await window.DrMinditSupabase
+                .from('user_sessions')
+                .update({
+                    completed_seconds: Math.floor(this.playerElapsed)
+                })
+                .eq('id', this.dbSessionId);
+
+            // LocalStorage fallback for safety
+            localStorage.setItem('drmindit_active_sync', JSON.stringify({
+                id: this.dbSessionId,
+                elapsed: this.playerElapsed,
+                ts: Date.now()
+            }));
+        } catch (err) {
+            console.error('✦ DrMindit: Background session sync failed:', err);
+        }
     },
 
     getSessionDuration() {
@@ -272,15 +462,58 @@ const DrMinditState = {
         this.calmNowActive = true;
         this.calmNowTimer = 5 * 60; // 5 minutes
         clearInterval(this._calmInterval);
+
+        // Soft start audio if engine is available
+        if (window.DrMinditAudioEngine) {
+            DrMinditAudioEngine.init();
+            DrMinditAudioEngine.masterGain.gain.setValueAtTime(0, DrMinditAudioEngine.audioCtx.currentTime);
+            DrMinditAudioEngine._startBinauralBeats(); // Reliable oscillator-based audio
+            DrMinditAudioEngine.masterGain.gain.linearRampToValueAtTime(1, DrMinditAudioEngine.audioCtx.currentTime + 3);
+        }
+
         this._calmInterval = setInterval(() => {
             if (this.calmNowTimer > 0) {
                 this.calmNowTimer--;
-                this.notify();
+                this._updateCalmNowUI();
             } else {
                 this.closeCalmNow();
             }
         }, 1000);
         this.notify();
+    },
+
+    _updateCalmNowUI() {
+        const timerEl = document.getElementById('calm-timer-display');
+        const instructionEl = document.getElementById('calm-instruction-text');
+        const ringEl = document.getElementById('calm-progress-ring-fill');
+
+        if (timerEl) {
+            const minutes = Math.floor(this.calmNowTimer / 60);
+            const seconds = this.calmNowTimer % 60;
+            timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        if (instructionEl) {
+            // New 14s cycle: 4 in, 4 hold, 6 out
+            const cyclePos = (300 - this.calmNowTimer) % 14;
+            let text = 'Breathe in...';
+            if (cyclePos >= 4 && cyclePos < 8) text = 'Hold...';
+            else if (cyclePos >= 8) text = 'Breathe out...';
+
+            if (instructionEl.textContent !== text) {
+                instructionEl.style.opacity = 0;
+                setTimeout(() => {
+                    instructionEl.textContent = text;
+                    instructionEl.style.opacity = 1;
+                }, 300);
+            }
+        }
+
+        if (ringEl) {
+            const progress = (300 - this.calmNowTimer) / 300;
+            const circumference = 2 * Math.PI * 135;
+            ringEl.style.strokeDashoffset = circumference - (progress * circumference);
+        }
     },
 
     closeCalmNow() {

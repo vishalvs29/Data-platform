@@ -313,106 +313,202 @@ const DrMinditComponents = {
         const progress = elapsed / totalSeconds;
         const therapist = DrMinditData.getTherapistById(session.therapist);
 
-        const radius = 110;
+        const radius = 120; // Slightly larger for elegance
         const circumference = 2 * Math.PI * radius;
         const offset = circumference - progress * circumference;
 
         const formatTime = (s) => {
+            if (!s || isNaN(s)) return "00:00";
             const m = Math.floor(s / 60);
             const sec = Math.floor(s % 60);
             return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
         };
 
-        // Generate waveform bars - dynamic based on playing state
-        const bars = Array.from({ length: 40 }, (_, i) => {
-            const delay = (i * 0.05).toFixed(2);
+        // Breathing label based on 14s cycle
+        const cyclePos = elapsed % 14;
+        let breatheLabel = 'Inhale';
+        let phaseClass = 'phase-inhale';
+        if (cyclePos >= 4 && cyclePos < 8) {
+            breatheLabel = 'Hold';
+            phaseClass = 'phase-hold';
+        } else if (cyclePos >= 8) {
+            breatheLabel = 'Exhale';
+            phaseClass = 'phase-exhale';
+        }
+
+        const bars = Array.from({ length: 32 }, (_, i) => {
+            const delay = (i * 0.08).toFixed(2);
             const active = DrMinditState.playerPlaying ? 'playing' : '';
-            return `<div class="waveform-bar ${active}" style="animation-delay:${delay}s;"></div>`;
+            return `<div class="waveform-bar-refined ${active}" style="animation-delay:${delay}s;"></div>`;
         }).join('');
 
         return `
-            <div class="audio-player-container page-enter">
-                <!-- Background Ambient Gradient -->
-                <div class="player-bg-gradient ${session.thumbGradient || 'grad-stress'}"></div>
+            <div class="audio-player-container page-enter ${phaseClass}">
+                <div class="page-active animate-fade-in" 
+                 ontouchstart="DrMinditState.handlePlayerTouchStart(event)" 
+                 ontouchend="DrMinditState.handlePlayerTouchEnd(event)"
+                 onclick="DrMinditState.toggleControls()">
+                 
+                <!-- Dynamic Atmosphere -->
+                <div class="aura-glow aura-1"></div>
+                <div class="aura-glow aura-2"></div>
+                <div class="aura-glow aura-3"></div>
+                <div class="player-bg-gradient-premium ${session.thumbGradient || 'grad-stress'}"></div>
                 
-                <div class="player-visualizer">
-                    <!-- Layered breathing circles -->
-                    <div class="breathing-glow"></div>
-                    <div class="breathing-circle ${DrMinditState.playerPlaying ? 'pulse' : ''}"></div>
-                    <div class="breathing-inner"></div>
-                </div>
-
-                <button class="player-close" onclick="DrMinditState.stopSession()">
+                <!-- Close Button: High Visibility / Always Accessible -->
+                <button class="player-exit-btn-fixed" onclick="DrMinditState.requestExit(); event.stopPropagation();" aria-label="Exit session">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M18 6L6 18M6 6l12 12"/>
+                        <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </button>
 
-                <div class="player-content">
-                    <div class="player-session-label animate-fade-in">${session.category.toUpperCase()} SESSION · ${session.duration} MIN</div>
-                    <div class="player-session-title animate-fade-in">${session.title}</div>
-                    
-                    <div class="progress-ring-container">
-                        <svg class="progress-ring" viewBox="0 0 240 240">
-                            <circle class="progress-ring-bg" cx="120" cy="120" r="${radius}"/>
-                            <circle class="progress-ring-fill" cx="120" cy="120" r="${radius}"
-                                    stroke-dasharray="${circumference}"
-                                    stroke-dashoffset="${offset}"/>
-                        </svg>
-                        <div class="progress-ring-time">
-                            <div class="time-current">${formatTime(elapsed)}</div>
-                            <div class="time-divider">/</div>
-                            <div class="time-total">${session.duration}:00</div>
-                        </div>
+                <!-- Exit Confirmation Modal (Conditionally Rendered) -->
+                ${DrMinditState.showExitConfirmation ? this.exitConfirmationModal() : ''}
+
+                <div class="player-main-layout-refined ${DrMinditState.showExitConfirmation ? 'modal-active' : ''}">
+                    <!-- 1. Header: Elegant Typography -->
+                    <div class="player-header-premium animate-fade-down ${DrMinditState.playerControlsVisible ? '' : 'controls-hidden'}">
+                        <div class="session-meta-pill">${session.category.toUpperCase()} SESSION · ${session.duration} MIN</div>
+                        <h1 class="session-title-elegant">${session.title}</h1>
+                        <div class="session-subtitle-elegant">Guide: ${therapist ? therapist.name : 'Marcus'}</div>
                     </div>
 
-                    <div class="player-caption-container">
-                        <p class="player-caption">${DrMinditAudioEngine.getCaption() || 'Centering your focus...'}</p>
-                    </div>
-
-                    <div class="player-waveform-container">
-                        <div class="waveform">${bars}</div>
-                    </div>
-
-                    <!-- Progress Bar (Scrubbable) -->
-                    <div class="player-scrubber">
-                        <input type="range" class="scrubber-range" min="0" max="${totalSeconds}" value="${elapsed}" 
-                               oninput="DrMinditState.seekTo(this.value)">
-                        <div class="scrubber-labels">
-                            <span>${formatTime(elapsed)}</span>
-                            <span>${session.duration}:00</span>
-                        </div>
-                    </div>
-
-                    <div class="player-controls">
-                        <button class="player-btn" onclick="DrMinditState.skipBackward()">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
+                    <!-- 2. Center Piece: The Breathing Soul -->
+                    <div class="player-center-premium">
+                        <div class="orb-container-premium">
+                            <!-- Visual Resonance (Ambient expansion) -->
+                            <div class="orb-resonance ${DrMinditState.playerPlaying ? 'active' : ''}"></div>
+                            
+                            <!-- Progress Ring (Thin & Glowing) -->
+                            <svg class="progress-ring-elegant" viewBox="0 0 300 300">
+                                <circle class="ring-track-elegant" cx="150" cy="150" r="${radius}"/>
+                                <circle id="player-ring-fill" class="ring-progress-elegant" cx="150" cy="150" r="${radius}"
+                                        stroke-dasharray="${circumference}"
+                                        stroke-dashoffset="${offset}"/>
                             </svg>
-                        </button>
-                        
-                        <button class="player-btn player-btn-main ${DrMinditState.playerPlaying ? 'playing' : ''}" 
-                                onclick="DrMinditState.togglePlayer()">
-                            <div class="play-icon-wrapper">
-                                ${DrMinditState.playerPlaying
+                            
+                            <!-- The Breathing Orb -->
+                            <div class="breathing-orb-premium ${DrMinditState.playerPlaying ? 'active breathe' : ''}">
+                                <div class="orb-content-premium">
+                                    <div class="phase-label-elegant" id="orb-breath-label">${DrMinditState.playerPlaying ? breatheLabel : ''}</div>
+                                    <div class="timer-display-premium">
+                                        <div class="time-main" id="player-time-current">${formatTime(elapsed)}</div>
+                                        <div class="time-sub">Remains: ${formatTime(totalSeconds - elapsed)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guidance Text (Faded out when controls are hidden) -->
+                        <div class="guidance-text-container ${DrMinditState.playerControlsVisible ? '' : 'controls-hidden'}">
+                            <p id="player-caption-text" class="guidance-text-elegant animate-fade-in">
+                                ${DrMinditState.narrationError ? `<span class="err">Connection stable. Narrative resuming...</span>` : (DrMinditAudioEngine.getCaption() || 'Find a comfortable space...')}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 3. Footer: Refined Controls -->
+                    <div class="player-footer-premium ${DrMinditState.playerControlsVisible ? '' : 'controls-hidden'}">
+                        <!-- Minimalist Scrubber -->
+                        <div class="scrubber-premium">
+                            <div class="scrubber-bar-container">
+                                <input id="player-scrubber-slider" type="range" class="scrubber-input" min="0" max="${totalSeconds}" value="${elapsed}" 
+                                       oninput="DrMinditState.seekTo(this.value); event.stopPropagation();"
+                                       onclick="event.stopPropagation()">
+                                <div id="player-scrubber-fill" class="scrubber-fill-elegant" style="width: ${progress * 100}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Control Center -->
+                        <div class="control-center-premium" onclick="event.stopPropagation()">
+                            <div class="playback-main-group">
+                                <button class="btn-secondary-modern" onclick="DrMinditState.skipBackward()" aria-label="Skip back 15 seconds">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                                </button>
+                                
+                                <button class="btn-play-premium ${DrMinditState.playerPlaying ? 'playing' : ''}" onclick="DrMinditState.togglePlayer()" aria-label="Play/Pause">
+                                    <div class="btn-inner-glow"></div>
+                                    <div class="icon-wrap-premium">
+                                        ${DrMinditState.playerPlaying
                 ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
                 : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
             }
+                                    </div>
+                                </button>
+        
+                                <button class="btn-secondary-modern" onclick="DrMinditState.skipForward()" aria-label="Skip forward 15 seconds">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.41 10.6C16.55 9 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.92 16c1.05-3.19 4.05-5.5 7.58-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.59 3.6z"/></svg>
+                                </button>
                             </div>
-                        </button>
 
-                        <button class="player-btn" onclick="DrMinditState.skipForward()">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
-                            </svg>
+                            <div class="speed-selector-premium">
+                                <button class="speed-pill ${DrMinditState.playbackRate === 1.0 ? 'active' : ''}" onclick="DrMinditState.setPlaybackRate(1.0)">1x</button>
+                                <button class="speed-pill ${DrMinditState.playbackRate === 1.25 ? 'active' : ''}" onclick="DrMinditState.setPlaybackRate(1.25)">1.25x</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    exitConfirmationModal() {
+        return `
+            <div class="modal-overlay-premium animate-fade-in" onclick="DrMinditState.cancelExit()">
+                <div class="modal-glass-card animate-zoom-in" onclick="event.stopPropagation()">
+                    <div class="modal-icon-wrap">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h2 class="modal-title-elegant">End Session Early?</h2>
+                    <p class="modal-desc-refined">You’ve done great so far. Ending now will save your current progress, but don’t forget to return for the full benefit.</p>
+                    
+                    <div class="modal-actions-stack">
+                        <button class="btn btn-primary btn-block modal-btn-main" onclick="DrMinditState.stopSession()">
+                            End Session Now
+                        </button>
+                        <button class="btn-link modal-btn-alt" onclick="DrMinditState.cancelExit()">
+                            Continue Meditation
                         </button>
                     </div>
                 </div>
+            </div>
+        `;
+    },
 
-                <div class="player-bottom-info">
-                    <div class="now-playing-info">
-                        <span class="pulse-dot"></span>
-                        Premium AI Narration · ${therapist ? therapist.name : 'Marcus'}
+
+    // ── Mini Player ──
+    miniPlayer() {
+        if (!DrMinditState.activeSessionId) return '';
+        const session = DrMinditData.getSessionById(DrMinditState.activeSessionId);
+        if (!session) return '';
+
+        const progress = DrMinditState.playerElapsed / (session.duration * 60);
+
+        return `
+            <div class="mini-player-sticky animate-slide-up" onclick="DrMinditState.navigateTo('active')">
+                <div class="mini-player-progress" style="width: ${progress * 100}%"></div>
+                <div class="mini-player-content">
+                    <div class="mini-player-info">
+                        <div class="mini-thumb ${session.thumbGradient}">${session.thumbIcon}</div>
+                        <div class="mini-text">
+                            <div class="mini-title">${session.title}</div>
+                            <div class="mini-subtext">${session.duration} min · Now Playing</div>
+                        </div>
+                    </div>
+                    <div class="mini-controls" onclick="event.stopPropagation()">
+                        <button class="mini-ctrl-btn" onclick="DrMinditState.togglePlayer()">
+                            ${DrMinditState.playerPlaying
+                ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+                : '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
+            }
+                        </button>
+                        <button class="mini-ctrl-btn" onclick="DrMinditState.stopSession()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -421,65 +517,98 @@ const DrMinditComponents = {
 
     // ── Calm Now Overlay ──
     calmNowOverlay() {
-        const timer = DrMinditState.calmNowTimer || 0;
+        const timer = DrMinditState.calmNowTimer || 300;
         const minutes = Math.floor(timer / 60);
         const seconds = timer % 60;
-        const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} `;
 
-        // Breathing phase (6 sec cycle: 4 in, 2 out)
-        const phase = timer % 6;
+        // Initial instruction text based on timer
+        const cyclePos = (300 - timer) % 14;
         let instruction = 'Breathe in...';
-        if (phase < 2) instruction = 'Breathe out...';
-        else if (phase < 4) instruction = 'Breathe in...';
-        else instruction = 'Hold...';
+        if (cyclePos >= 4 && cyclePos < 8) instruction = 'Hold...';
+        else if (cyclePos >= 8) instruction = 'Breathe out...';
+
+        const radius = 135;
+        const circumference = 2 * Math.PI * radius;
+        const progress = (300 - timer) / 300;
+        const offset = circumference - progress * circumference;
 
         return `
-            <div class="calm-now-overlay page-enter">
+    <div class="calm-now-overlay page-enter" >
+                < !--Ambient Particles-- >
+                <div class="calm-particles">
+                    <div class="particle" style="top:20%; left:10%; animation-delay: 0s;"></div>
+                    <div class="particle" style="top:60%; left:80%; animation-delay: 2s;"></div>
+                    <div class="particle" style="top:80%; left:30%; animation-delay: 4s;"></div>
+                    <div class="particle" style="top:10%; left:70%; animation-delay: 1s;"></div>
+                </div>
+
+                <div class="calm-bg-glow"></div>
+
                 <button class="calm-close" onclick="DrMinditState.closeCalmNow()">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
-                <div class="calm-title">Calm Now</div>
-                <div class="calm-subtitle">5-minute emergency breathing reset</div>
-                <div class="breathing-main-circle">
-                    <div class="breathing-text">●</div>
+
+                <div class="calm-content">
+                    <div class="calm-title">Calm Now</div>
+                    <div class="calm-subtitle">Physiological Reset Protocol</div>
+
+                    <div class="breathing-ring-container">
+                        <!-- Progress Ring -->
+                        <svg class="calm-progress-ring" viewBox="0 0 300 300">
+                            <circle class="ring-bg" cx="150" cy="150" r="${radius}"/>
+                            <circle id="calm-progress-ring-fill" class="ring-fill" cx="150" cy="150" r="${radius}"
+                                    stroke-dasharray="${circumference}"
+                                    stroke-dashoffset="${offset}"/>
+                        </svg>
+
+                        <!-- Breathing Orb -->
+                        <div class="breathing-orb-wrap">
+                            <div class="breathing-orb-glow"></div>
+                            <div class="breathing-orb"></div>
+                            <div class="breathing-orb-inner"></div>
+                        </div>
+                    </div>
+
+                    <div class="calm-timer" id="calm-timer-display">${timeStr}</div>
+                    <div class="calm-instruction" id="calm-instruction-text">${instruction}</div>
                 </div>
-                <div class="calm-timer">${timeStr}</div>
-                <div class="calm-instruction">${instruction}</div>
             </div>
-        `;
+    `;
     },
 
     // ── Stat Card ──
     statCard(value, label, trend = null) {
         const trendHtml = trend
-            ? `<div class="${trend > 0 ? 'trend-up' : 'trend-down'}">
-                    ${trend > 0 ? '↑' : '↓'} ${Math.abs(trend)}%
-               </div>`
+            ? `<div class="${trend > 0 ? 'trend-up' : 'trend-down'}" >
+    ${trend > 0 ? '↑' : '↓'} ${Math.abs(trend)}%
+               </div> `
             : '';
         return `
-            <div class="stat-card animate-fade-in-up">
+    <div class="stat-card animate-fade-in-up" >
                 <div class="stat-value">${value}</div>
                 <div class="stat-label">${label}</div>
                 ${trendHtml}
             </div>
-        `;
+    `;
     },
 
     // ── Achievement Grid ──
     achievementGrid(achievements) {
         return `
-            <div class="achievement-grid stagger-children">
-                ${achievements.map(a => `
+    <div class="achievement-grid stagger-children" >
+        ${achievements.map(a => `
                     <div class="achievement-badge ${a.unlocked ? '' : 'locked'} animate-fade-in-up">
                         <div class="achievement-icon">${a.icon}</div>
                         <div class="achievement-name">${a.name}</div>
                     </div>
-                `).join('')}
+                `).join('')
+            }
             </div>
-        `;
+    `;
     },
 
     narratorSettings() {
@@ -487,13 +616,13 @@ const DrMinditComponents = {
         const selected = DrMinditAudioEngine.selectedVoice ? DrMinditAudioEngine.selectedVoice.name : '';
 
         const options = voices.map(v => `
-            <option value="${v.name}" ${v.name === selected ? 'selected' : ''}>
-                ${v.name} (${v.lang})
-            </option>
-        `).join('');
+    < option value = "${v.name}" ${v.name === selected ? 'selected' : ''}>
+        ${v.name} (${v.lang})
+            </option >
+    `).join('');
 
         return `
-            <div class="info-card" style="margin-top: 24px; padding: 24px;">
+    <div class="info-card" style = "margin-top: 24px; padding: 24px;" >
                 <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                     🎙️ AI Narrator Settings
                 </div>
@@ -517,14 +646,14 @@ const DrMinditComponents = {
                     </div>
                 </div>
             </div>
-        `;
+    `;
     },
 
     // ── Profile Form ──
     profileForm() {
         const user = DrMinditData.user;
         return `
-            <div class="profile-form page-enter">
+    <div class="profile-form page-enter" >
                 <div class="form-group">
                     <label>Full Name</label>
                     <input type="text" id="prof-name" value="${user.name}">
@@ -579,82 +708,82 @@ const DrMinditComponents = {
                 </div>
                 <button class="cta-button" style="margin-top:20px; width:100%;" onclick="DrMinditPages.handleProfileSave()">Save Changes</button>
             </div>
-        `;
+    `;
     },
 
     // ── Mood Modals ──
     moodCheckInModal() {
         return `
-            <div class="modal-overlay page-enter">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <div class="modal-title">Check-in: Pre-Session</div>
-                        <div class="modal-subtitle">How are you arriving to your practice?</div>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-label" style="margin-bottom:12px;">Rate your current mood (1-10)</div>
-                        <div class="mood-scale">
-                            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `
+    <div class="modal-overlay page-enter" >
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Check-in: Pre-Session</div>
+                <div class="modal-subtitle">How are you arriving to your practice?</div>
+            </div>
+            <div class="modal-body">
+                <div class="form-label" style="margin-bottom:12px;">Rate your current mood (1-10)</div>
+                <div class="mood-scale">
+                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `
                                 <div class="scale-item" onclick="DrMinditPages.setSelectedMoodScale(${i})">${i}</div>
                             `).join('')}
-                        </div>
-                        <div class="form-label" style="margin-top:24px; margin-bottom:12px;">Add emotion tags</div>
-                        <div class="tag-selector" id="check-in-tags">
-                            ${['calm', 'anxious', 'motivated', 'tired', 'grateful', 'focused', 'ready', 'neutral'].map(t => `
+                </div>
+                <div class="form-label" style="margin-top:24px; margin-bottom:12px;">Add emotion tags</div>
+                <div class="tag-selector" id="check-in-tags">
+                    ${['calm', 'anxious', 'motivated', 'tired', 'grateful', 'focused', 'ready', 'neutral'].map(t => `
                                 <div class="tag-option" onclick="this.classList.toggle('active')">${t}</div>
                             `).join('')}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="cta-button" style="width:100%;" onclick="DrMinditPages.submitMoodCheckIn()">Start Session</button>
-                    </div>
                 </div>
             </div>
-        `;
+            <div class="modal-footer">
+                <button class="cta-button" style="width:100%;" onclick="DrMinditPages.submitMoodCheckIn()">Start Session</button>
+            </div>
+        </div>
+            </div>
+    `;
     },
 
     moodCheckOutModal() {
         return `
-            <div class="modal-overlay page-enter">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <div class="modal-title">Check-out: Post-Session</div>
-                        <div class="modal-subtitle">How do you feel after your practice?</div>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-label" style="margin-bottom:12px;">Rate your current mood (1-10)</div>
-                        <div class="mood-scale">
-                            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `
+    <div class="modal-overlay page-enter" >
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Check-out: Post-Session</div>
+                <div class="modal-subtitle">How do you feel after your practice?</div>
+            </div>
+            <div class="modal-body">
+                <div class="form-label" style="margin-bottom:12px;">Rate your current mood (1-10)</div>
+                <div class="mood-scale">
+                    ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `
                                 <div class="scale-item" onclick="DrMinditPages.setSelectedMoodScale(${i})">${i}</div>
                             `).join('')}
-                        </div>
-                        <div class="form-label" style="margin-top:24px; margin-bottom:12px;">Add final emotion tags</div>
-                        <div class="tag-selector" id="check-out-tags">
-                            ${['relaxed', 'centered', 'vibrant', 'sleepy', 'balanced', 'clear', 'happy', 'expansive'].map(t => `
+                </div>
+                <div class="form-label" style="margin-top:24px; margin-bottom:12px;">Add final emotion tags</div>
+                <div class="tag-selector" id="check-out-tags">
+                    ${['relaxed', 'centered', 'vibrant', 'sleepy', 'balanced', 'clear', 'happy', 'expansive'].map(t => `
                                 <div class="tag-option" onclick="this.classList.toggle('active')">${t}</div>
                             `).join('')}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="cta-button" style="width:100%;" onclick="DrMinditPages.submitMoodCheckOut()">Complete Flow</button>
-                    </div>
                 </div>
             </div>
-        `;
+            <div class="modal-footer">
+                <button class="cta-button" style="width:100%;" onclick="DrMinditPages.submitMoodCheckOut()">Complete Flow</button>
+            </div>
+        </div>
+            </div>
+    `;
     },
 
     aiInsightCard() {
         const insight = DrMinditState.getMoodInsights();
         const isAlert = insight.includes('Alert');
         return `
-            <div class="ai-insight-card animate-fade-in-up ${isAlert ? 'alert' : ''}">
+    <div class="ai-insight-card animate-fade-in-up ${isAlert ? 'alert' : ''}" >
                 <div class="ai-insight-icon">${isAlert ? '⚠️' : '🧠'}</div>
                 <div class="ai-insight-content">
                     <div class="ai-insight-label">DrMindit AI Observer</div>
                     <div class="ai-insight-text">${insight}</div>
                 </div>
             </div>
-        `;
+    `;
     },
 
     resilienceJourney() {
@@ -669,7 +798,7 @@ const DrMinditComponents = {
         ];
 
         return `
-            <div class="resilience-journey page-enter">
+    <div class="resilience-journey page-enter" >
                 <div class="journey-header">
                     <div class="journey-badge">21-DAY PREMIUM PROGRAM</div>
                     <h1 class="journey-title">Mental Resilience for High-Stakes Professionals</h1>
@@ -718,7 +847,7 @@ const DrMinditComponents = {
                     `).join('')}
                 </div>
             </div>
-        `;
+    `;
     },
 
     // ── Streak Display ──
@@ -727,18 +856,30 @@ const DrMinditComponents = {
         const streak = user.currentStreak || 0;
         const longest = user.longest_streak || streak;
 
+        // Custom motivational text based on streak
+        let motivation = "Keep showing up!";
+        if (streak > 0 && streak < 3) motivation = "Great start! Keep it up.";
+        if (streak >= 3) motivation = "You're on fire! Stay consistent.";
+        if (streak >= 7) motivation = "Weekly milestone reached! incredible focus.";
+
         return `
-            <div class="streak-widget animate-fade-in-up" 
-                 style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:16px; padding:20px; display:flex; align-items:center; gap:20px; margin: 0 16px 24px;">
-                <div class="streak-fire" style="font-size: 40px; filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.4));">🔥</div>
-                <div style="flex:1;">
-                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Current Streak</div>
-                    <div style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin: 2px 0;">${streak} Days</div>
-                    <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">Personal Best: ${longest} Days</div>
+            <div class="streak-widget-premium animate-fade-in-up" onclick="DrMinditState.navigateTo('insights')">
+                <div class="streak-icon-wrap">
+                    <span class="streak-icon-fire">🔥</span>
                 </div>
-                <div class="streak-milestone" style="width: 50px; height: 50px; background: rgba(20, 184, 166, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(20, 184, 166, 0.2);">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent)">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                
+                <div class="streak-content-main">
+                    <div class="streak-label-subtle">Personal Streak</div>
+                    <div class="streak-count-prominent">
+                        <span class="streak-number-bold">${streak}</span>
+                        <span class="streak-text-bold">Day Streak</span>
+                    </div>
+                    <div class="streak-motivation-text">${motivation}</div>
+                </div>
+
+                <div class="streak-action-chevron">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                 </div>
             </div>
@@ -755,7 +896,7 @@ const DrMinditComponents = {
         ];
 
         return `
-            <div class="notification-settings-panel">
+    <div class="notification-settings-panel" >
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
                     <div>
                         <div style="font-weight:600; color:var(--text-primary);">Daily Reminders</div>
@@ -838,24 +979,42 @@ const DrMinditComponents = {
                     </button>
                 </div>
             </div>
-        `;
+    `;
     },
     // ── Platform Gateway Card ──
     gatewayCard(platform) {
         return `
-            <div class="gateway-card glass-card" onclick="DrMinditState.switchPlatform('${platform.id}')">
-                <div class="gateway-icon">${platform.icon}</div>
-                <div class="gateway-content">
-                    <h3 class="gateway-title">${platform.title}</h3>
-                    <p class="gateway-desc">${platform.description}</p>
-                    <div class="gateway-features">
-                        ${platform.features.slice(0, 3).map(f => `<span class="gateway-feature-tag">${f}</span>`).join('')}
+            <div class="gateway-card glass-card animate-fade-in-up" onclick="DrMinditState.switchPlatform('${platform.id}')">
+                <div class="gateway-icon-wrap">
+                    <div class="gateway-icon-bg ${platform.id}-glow"></div>
+                    <div class="gateway-icon-main">${platform.icon}</div>
+                </div>
+                
+                <div class="gateway-content-premium">
+                    <h3 class="gateway-title-elegant">${platform.title}</h3>
+                    <p class="gateway-desc-refined">${platform.description}</p>
+                    
+                    <div class="gateway-feature-chips">
+                        ${platform.features.slice(0, 3).map(f => `
+                            <span class="platform-chip">
+                                <span class="chip-dot"></span>
+                                ${f}
+                            </span>
+                        `).join('')}
                     </div>
                 </div>
-                <button class="btn btn-primary btn-sm gateway-btn">
-                    Enter Platform
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                </button>
+
+                <div class="gateway-action-area">
+                    <button class="btn-gateway-premium" aria-label="Enter ${platform.title} Platform">
+                        <span>Enter Platform</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="card-interaction-overlay"></div>
             </div>
         `;
     }
