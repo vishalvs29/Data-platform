@@ -884,6 +884,61 @@
     }
 }
 
+/* ── Session Completion Celebration ── */
+.celebration-rings {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.ring-1,
+.ring-2 {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    opacity: 0;
+    animation: ringPulse 2s infinite ease-out;
+}
+
+.ring-2 {
+    animation-delay: 1s;
+}
+
+@keyframes ringPulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.completion-success {
+    background: rgba(20, 184, 166, 0.15) !important;
+}
+
+.completion-stats-pill {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 24px;
+}
+
+
 /* ── Control Auto-Hide Logic ── */
 .controls-hidden {
     opacity: 0 !important;

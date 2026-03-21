@@ -51,6 +51,9 @@ const DrMinditRouter = {
                 html = DrMinditPages.active();
                 showNav = false;
                 break;
+            case 'chat': // Added chat route
+                html = DrMinditPages.chat();
+                break;
             case 'analytics':
                 html = DrMinditPages.analytics();
                 break;

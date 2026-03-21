@@ -189,7 +189,9 @@ const DrMinditAudioEngine = {
             const utter = new SpeechSynthesisUtterance(cue.text);
             utter.rate = 0.8;
             utter.pitch = 0.9;
-            utter.onend = () => setTimeout(() => this._processNextTtsCue(), 1000);
+            utter.onend = () => {
+                this._ttsTimeout = setTimeout(() => this._processNextTtsCue(), 1000);
+            };
 
             this.currentCaption = cue.text;
             if (this.onCaptionUpdate) this.onCaptionUpdate(cue.text);
@@ -197,7 +199,7 @@ const DrMinditAudioEngine = {
             window.speechSynthesis.speak(utter);
         } else {
             const delay = cue.duration ? cue.duration * 1000 : 3000;
-            setTimeout(() => this._processNextTtsCue(), delay);
+            this._ttsTimeout = setTimeout(() => this._processNextTtsCue(), delay);
         }
     },
 
@@ -219,29 +221,54 @@ const DrMinditAudioEngine = {
         if (window.speechSynthesis.paused) window.speechSynthesis.resume();
     },
 
-    stop() {
+    stop(immediate = false) {
         this.isRunning = false;
+        this.isPaused = false;
         if (this._timeTrackInterval) clearInterval(this._timeTrackInterval);
+        this._clearAllTimeouts();
 
-        this._fadeOut(2);
+        if (immediate) {
+            this._performHardStop();
+        } else {
+            this._fadeOut(2);
+            setTimeout(() => this._performHardStop(), 2100);
+        }
+    },
 
-        setTimeout(() => {
-            if (this.narrationPlayer) this.narrationPlayer.stop();
-            if (this.backgroundPlayer) this.backgroundPlayer.stop();
-            if (this.introPlayer) this.introPlayer.stop();
+    _performHardStop() {
+        if (this.narrationPlayer) {
+            this.narrationPlayer.stop();
+            this.narrationPlayer.unload();
+            this.narrationPlayer = null;
+        }
+        if (this.backgroundPlayer) {
+            this.backgroundPlayer.stop();
+            this.backgroundPlayer.unload();
+            this.backgroundPlayer = null;
+        }
+        if (this.introPlayer) {
+            this.introPlayer.stop();
+            this.introPlayer.unload();
+            this.introPlayer = null;
+        }
 
-            this.binauralOscs.forEach(osc => {
-                try { osc.stop(); osc.disconnect(); } catch (e) { }
-            });
-            this.binauralOscs = [];
+        this.binauralOscs.forEach(osc => {
+            try { osc.stop(); osc.disconnect(); } catch (e) { }
+        });
+        this.binauralOscs = [];
 
-            window.speechSynthesis.cancel();
+        window.speechSynthesis.cancel();
 
-            if (this.audioCtx && this.audioCtx.state !== 'closed') {
-                this.audioCtx.close();
-            }
-            this.audioCtx = null;
-        }, 2100);
+        if (this.audioCtx && this.audioCtx.state !== 'closed') {
+            this.audioCtx.close();
+        }
+        this.audioCtx = null;
+        console.log('✦ DrMindit Audio: Hard stop performed.');
+    },
+
+    _clearAllTimeouts() {
+        if (this._ttsTimeout) clearTimeout(this._ttsTimeout);
+        // Add any other specific timers here
     },
 
     _fadeIn(sec) {

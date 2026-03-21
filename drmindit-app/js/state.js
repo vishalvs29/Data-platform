@@ -8,6 +8,7 @@ const DrMinditState = {
     previousPage: null,
     selectedSessionId: null,
     activeSessionId: null,
+    sessionStatus: 'idle', // 'idle' | 'loading' | 'playing' | 'paused' | 'completed' | 'exited'
     selectedMood: null,
     selectedDuration: null,
     selectedCategory: 'all',
@@ -15,7 +16,9 @@ const DrMinditState = {
     showMoodCheckIn: false,
     showMoodCheckOut: false,
     showExitConfirmation: false, // New flag for the confirmation modal
+    isSessionCompleted: false, // New flag for the celebration screen
     playerControlsVisible: true, // New flag for auto-hide controls
+    syncQueue: [], // Queue for offline event syncing
     calmNowTimer: null,
     playerTimer: null,
     playerElapsed: 0,
@@ -28,6 +31,9 @@ const DrMinditState = {
     currentPlatform: null, // null = Gateway, 'schools', 'corporate', 'government', 'defense'
     narrationError: null, // Error message if audio fails
     playbackRate: 1.0, // Default playback rate
+    dbSessionRecordId: null, // ID of the current user_sessions record in DB
+    chatHistory: [], // Messages: { role: 'user'|'assistant', text: string, timestamp: Date, action?: {title, label, handler} }
+    chatTyping: false, // Loading indicator for Mindi responding
 
     listeners: [],
 
@@ -44,9 +50,11 @@ const DrMinditState = {
         const container = document.getElementById('mini-player-container');
         if (!container) return;
 
-        const shouldShow = this.activeSessionId && this.currentPage !== 'active' && !this.calmNowActive;
+        const isMainPlayerVisible = this.currentPage === 'active';
+        const isCalmNowActive = this.calmNowActive;
+        const shouldShow = (this.sessionStatus === 'playing' || this.sessionStatus === 'paused') && !isMainPlayerVisible && !isCalmNowActive;
 
-        if (shouldShow) {
+        if (shouldShow && this.activeSessionId) {
             container.innerHTML = DrMinditComponents.miniPlayer();
             container.classList.remove('hidden');
         } else {
@@ -76,7 +84,143 @@ const DrMinditState = {
         if (data.sessionId) this.selectedSessionId = data.sessionId;
         if (data.duration !== undefined) this.selectedDuration = data.duration;
         if (data.category) this.selectedCategory = data.category;
+
+        // Auto-scroll chat to bottom if navigating to chat
+        if (page === 'chat') {
+            setTimeout(() => {
+                const container = document.getElementById('chat-messages-container');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 100);
+        }
+
         this.notify();
+    },
+
+    // ── Chat Logic (Mindi AI) ──
+    async sendChatMessage(text) {
+        if (!text || text.trim() === '') return;
+
+        // 1. Add User Message
+        const userMsg = {
+            role: 'user',
+            text: text,
+            timestamp: new Date().toISOString()
+        };
+        this.chatHistory.push(userMsg);
+        this.notify();
+
+        // Scroll to bottom
+        setTimeout(() => {
+            const container = document.getElementById('chat-messages-container');
+            if (container) container.scrollTop = container.scrollHeight;
+        }, 50);
+
+        // 2. Safety Layer Check
+        const safetyKeywords = ['suicide', 'self-harm', 'kill myself', 'end it all', 'panic attack'];
+        const isCrisis = safetyKeywords.some(kw => text.toLowerCase().includes(kw));
+
+        if (isCrisis) {
+            await this._triggerSafetyResponse();
+            return;
+        }
+
+        // 3. AI Response (Mock)
+        this.chatTyping = true;
+        this.notify();
+
+        // Simulate AI "thinking"
+        const responseDelay = 1500 + Math.random() * 1000;
+        setTimeout(async () => {
+            const aiResponse = await this._getAIResponse(text);
+
+            this.chatHistory.push({
+                role: 'assistant',
+                text: aiResponse.text,
+                timestamp: new Date().toISOString(),
+                action: aiResponse.action || null
+            });
+
+            this.chatTyping = false;
+            this.notify();
+
+            // Scroll to bottom again
+            setTimeout(() => {
+                const container = document.getElementById('chat-messages-container');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 50);
+        }, responseDelay);
+    },
+
+    async _getAIResponse(text) {
+        const input = text.toLowerCase();
+
+        // Context: Recent session info
+        const lastSession = this.activeSessionId ? DrMinditData.getSessionById(this.activeSessionId) : null;
+
+        // 1. Emotional Detection & Intent Mapping
+        if (input.includes('anxious') || input.includes('stress')) {
+            return {
+                text: "I hear you. When things feel overwhelming, focus on your breath. Would you like to try a 3-minute rapid reset session right now?",
+                action: {
+                    title: "Recommended Action",
+                    label: "Start 3m Reset",
+                    handler: "DrMinditState.navigateTo('detail', { sessionId: 's3-1' })"
+                }
+            };
+        }
+
+        if (input.includes('focus') || input.includes('work')) {
+            return {
+                text: "Deep work requires a calm central nervous system. I recommend our 'Alpha Wave Focus' logic. Ready to begin?",
+                action: {
+                    title: "Focus Session",
+                    label: "Begin Alpha Focus",
+                    handler: "DrMinditState.navigateTo('detail', { sessionId: 's10-focus' })"
+                }
+            };
+        }
+
+        if (input.includes('sleep') || input.includes('tired')) {
+            return {
+                text: "Rest is a skill. I have a specialized bedtime routine designed to lower Cortisol. Shall we start?",
+                action: {
+                    title: "Sleep Support",
+                    label: "Open Sleep Session",
+                    handler: "DrMinditState.navigateTo('explore', { category: 'sleep' })"
+                }
+            };
+        }
+
+        if (input.includes('reflect') || (input.includes('session') && lastSession)) {
+            return {
+                text: `You just completed ${lastSession ? lastSession.title : 'a session'}. Taking a moment to integrate that experience is powerful. How did your body feel during the practice?`,
+            };
+        }
+
+        // Default response
+        return {
+            text: "I'm Mindi, your AI mental performance partner. I'm here to listen, reflect on your sessions, and suggest the right practice for how you're feeling right now. What's on your mind?",
+        };
+    },
+
+    async _triggerSafetyResponse() {
+        this.chatTyping = true;
+        this.notify();
+
+        setTimeout(() => {
+            this.chatHistory.push({
+                role: 'assistant',
+                text: "I'm detecting that you're going through a very difficult moment. Please know that you're not alone, but I'm an AI and cannot provide the professional crisis support you might need right now. Here are some immediate resources:",
+                timestamp: new Date().toISOString(),
+                action: {
+                    title: "Crisis Support",
+                    label: "Call Help Hotline",
+                    handler: "window.open('tel:988')" // National Suicide Prevention Lifeline
+                }
+            });
+            this.chatTyping = false;
+            this.notify();
+        }, 1000);
     },
 
     goBack() {
@@ -155,37 +299,29 @@ const DrMinditState = {
         this.activeSessionId = sessionId;
         this.playerElapsed = startAtSeconds;
         this.playerPlaying = true;
+        this.sessionStatus = 'loading'; // Immediate status change
         this.playerCaption = '';
         this.narrationError = null;
         this.currentPage = 'active';
-        this.dbSessionId = null;
+        this.dbSessionRecordId = null;
+        this.isSessionCompleted = false;
+        this.showExitConfirmation = false;
+        this.playerControlsVisible = true;
+
+        // Record Start Event and initialize DB record
+        await this._recordSessionEvent('start', {
+            session_id: session.id,
+            session_title: session.title,
+            session_duration: session.duration,
+            completed_seconds: startAtSeconds,
+            started_at: new Date().toISOString()
+        });
 
         let totalSeconds = session.duration * 60;
 
-        // 2. Create session record in database
-        if (window.DrMinditSupabase) {
-            const userId = window.DrMinditAuth?.user?.id || DrMinditData.user.id;
-            try {
-                const { data, error } = await window.DrMinditSupabase
-                    .from('user_sessions')
-                    .insert({
-                        user_id: userId,
-                        session_id: sessionId,
-                        session_title: session.title,
-                        session_duration: session.duration,
-                        completed_seconds: startAtSeconds,
-                        completion_status: false,
-                        started_at: new Date().toISOString()
-                    })
-                    .select('id')
-                    .single();
-
-                if (data) {
-                    this.dbSessionId = data.id;
-                    console.log('✦ DrMindit: Session record created:', this.dbSessionId);
-                }
-            } catch (err) { }
-        }
+        // 2. Create session record in database (This is now handled by _recordSessionEvent)
+        // The original logic for creating a session record is now integrated into _recordSessionEvent
+        // which uses upsert and sets dbSessionRecordId.
 
         // Initialize audio engine
         DrMinditAudioEngine.onCaptionUpdate = (caption) => {
@@ -193,9 +329,16 @@ const DrMinditState = {
             this._updateSessionCaption(caption);
         };
 
+        DrMinditAudioEngine.onLoading = (loading) => {
+            if (loading) this.sessionStatus = 'loading';
+            else if (this.playerPlaying) this.sessionStatus = 'playing';
+            this.notify();
+        };
+
         DrMinditAudioEngine.onNarrationError = (errorMsg) => {
             this.narrationError = errorMsg;
             this.playerPlaying = false;
+            this.sessionStatus = 'idle';
             this.notify();
         };
 
@@ -204,9 +347,19 @@ const DrMinditState = {
                 totalSeconds = Math.floor(duration);
             }
             this.playerElapsed = Math.floor(current);
-
             if (this.playerElapsed >= totalSeconds && totalSeconds > 0) {
-                this.stopSession();
+                // Session Finished!
+                this.isSessionCompleted = true;
+                this.sessionStatus = 'completed';
+                this.playerPlaying = false;
+                DrMinditAudioEngine.pause();
+
+                // Final sync
+                if (this.dbSessionRecordId) {
+                    this._syncActiveSessionProgress(true); // mark as completed
+                }
+
+                this.notify();
             } else {
                 this._updateSessionPlayerUI(totalSeconds);
             }
@@ -214,12 +367,17 @@ const DrMinditState = {
 
         DrMinditAudioEngine.start(sessionId, startAtSeconds);
 
-        // Local UI timer (fallback)
-        clearInterval(this.playerTimer);
+        // Local UI timer (fallback & sync)
+        if (this.playerTimer) clearInterval(this.playerTimer);
         this.playerTimer = setInterval(() => {
-            if (this.playerPlaying && !DrMinditAudioEngine.narrationPlayer) {
-                this.playerElapsed++;
+            if (this.playerPlaying && !this.showExitConfirmation) {
+                // If audio engine is not providing updates, increment locally
+                if (!DrMinditAudioEngine.narrationPlayer || !DrMinditAudioEngine.narrationPlayer.playing()) {
+                    this.playerElapsed++;
+                }
+
                 if (this.playerElapsed >= totalSeconds) {
+                    this.isSessionCompleted = true;
                     this.stopSession();
                 } else {
                     this._updateSessionPlayerUI(totalSeconds);
@@ -230,11 +388,25 @@ const DrMinditState = {
         // Periodic Database Sync
         clearInterval(this._sessionSyncInterval);
         this._sessionSyncInterval = setInterval(() => {
-            if (this.playerPlaying && this.dbSessionId) {
+            if (this.playerPlaying && this.dbSessionRecordId) {
                 this._syncActiveSessionProgress();
             }
         }, 15000);
 
+        this.notify();
+    },
+
+    requestExit() {
+        this.showExitConfirmation = true;
+        this.notify();
+    },
+
+    togglePlayerControls(visible) {
+        if (visible === undefined) {
+            this.playerControlsVisible = !this.playerControlsVisible;
+        } else {
+            this.playerControlsVisible = visible;
+        }
         this.notify();
     },
 
@@ -249,15 +421,21 @@ const DrMinditState = {
 
     togglePlayer() {
         this.playerPlaying = !this.playerPlaying;
+
         if (this.playerPlaying) {
+            this.sessionStatus = 'playing';
             DrMinditAudioEngine.resume();
+            this._recordSessionEvent('resume');
             document.querySelectorAll('.breathing-orb-minimal, .player-orb-glow').forEach(el => el.classList.add('active', 'breathe'));
             document.querySelectorAll('.waveform-bar').forEach(el => el.classList.add('playing'));
         } else {
+            this.sessionStatus = 'paused';
             DrMinditAudioEngine.pause();
+            this._recordSessionEvent('pause');
             document.querySelectorAll('.breathing-orb-minimal, .player-orb-glow').forEach(el => el.classList.remove('active', 'breathe'));
             document.querySelectorAll('.waveform-bar').forEach(el => el.classList.remove('playing'));
         }
+
         // Update play/pause button icon directly
         const mainBtn = document.querySelector('.ctrl-btn-main');
         if (mainBtn) {
@@ -269,63 +447,68 @@ const DrMinditState = {
                     : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             }
         }
+        this.notify();
     },
 
     _updateSessionPlayerUI(totalSeconds) {
+        const elapsed = this.playerElapsed;
+        const progress = totalSeconds > 0 ? elapsed / totalSeconds : 0;
+
+        // 1. DOM Element Lookup
         const timeEl = document.getElementById('player-time-current');
         const ringEl = document.getElementById('player-ring-fill');
         const sliderEl = document.getElementById('player-scrubber-slider');
         const fillEl = document.getElementById('player-scrubber-fill');
         const orbLabelEl = document.getElementById('orb-breath-label');
+        const orbEl = document.querySelector('.breathing-orb-premium');
         const playerContainer = document.querySelector('.audio-player-container');
 
-        const formatTime = (s) => {
-            const m = Math.floor(s / 60);
-            const sec = Math.floor(s % 60);
-            return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-        };
-
-        if (timeEl) timeEl.textContent = formatTime(this.playerElapsed);
-
-        const progress = totalSeconds > 0 ? this.playerElapsed / totalSeconds : 0;
-
-        // 1. Update Premium Progress Ring
-        if (ringEl) {
-            const radius = 120; // Matches components.js
-            const circumference = 2 * Math.PI * radius;
-            ringEl.style.strokeDashoffset = circumference - progress * circumference;
-        }
-
-        // 2. Update Premium Scrubber
-        if (sliderEl) sliderEl.value = this.playerElapsed;
+        // 2. Update Basic Stats
+        if (timeEl) timeEl.textContent = this._formatTime(elapsed);
+        if (sliderEl) sliderEl.value = elapsed;
         if (fillEl) fillEl.style.width = `${progress * 100}%`;
 
-        // 3. Update Breathing labels and Phase classes
-        if (this.playerPlaying) {
-            const cyclePos = this.playerElapsed % 14;
-            let label = 'Inhale';
-            let phase = 'phase-inhale';
-
-            if (cyclePos >= 4 && cyclePos < 8) {
-                label = 'Hold';
-                phase = 'phase-hold';
-            } else if (cyclePos >= 8) {
-                label = 'Exhale';
-                phase = 'phase-exhale';
-            }
-
-            if (orbLabelEl) orbLabelEl.textContent = label;
-
-            if (playerContainer) {
-                playerContainer.classList.remove('phase-inhale', 'phase-hold', 'phase-exhale');
-                playerContainer.classList.add(phase);
-            }
+        // 3. Update Progress Ring
+        if (ringEl) {
+            const radius = 135; // Matches components.js
+            const circumference = 2 * Math.PI * radius;
+            ringEl.style.strokeDashoffset = circumference - (progress * circumference);
         }
 
-        // Update Mini Player if visible
-        const miniProgress = document.querySelector('.mini-player-progress');
-        if (miniProgress) {
-            miniProgress.style.width = `${progress * 100}%`;
+        // 4. Breathing Cycle Logic (10s cycle: 4 in, 2 hold, 4 out)
+        const cyclePos = elapsed % 10;
+        let breatheLabel = 'Prepare...';
+        let phase = 'hold';
+
+        if (cyclePos < 4) {
+            breatheLabel = 'Breathe In';
+            phase = 'inhale';
+        } else if (cyclePos >= 4 && cyclePos < 6) {
+            breatheLabel = 'Hold';
+            phase = 'hold';
+        } else {
+            breatheLabel = 'Breathe Out';
+            phase = 'exhale';
+        }
+
+        // 5. Apply Phase UI & Haptics
+        if (orbLabelEl) orbLabelEl.textContent = this.playerPlaying ? breatheLabel : 'Paused';
+
+        if (orbEl) {
+            orbEl.className = `breathing-orb-premium ${this.playerPlaying ? 'active breathe' : ''} phase-${phase}`;
+        }
+
+        if (playerContainer) {
+            playerContainer.classList.remove('phase-inhale', 'phase-hold', 'phase-exhale');
+            if (this.playerPlaying) playerContainer.classList.add(`phase-${phase}`);
+        }
+
+        if (this.playerPlaying && navigator.vibrate) {
+            if (this._lastVibratePhase !== phase) {
+                if (phase === 'inhale') navigator.vibrate(40);
+                if (phase === 'exhale') navigator.vibrate([20, 30, 20]);
+                this._lastVibratePhase = phase;
+            }
         }
     },
 
@@ -367,7 +550,7 @@ const DrMinditState = {
             const completed = this.playerElapsed >= (session.duration * 60 * 0.9); // 90% = completed
 
             // 1. Final Update to Database
-            if (window.DrMinditSupabase && this.dbSessionId) {
+            if (window.DrMinditSupabase && this.dbSessionRecordId) {
                 try {
                     await window.DrMinditSupabase
                         .from('user_sessions')
@@ -376,7 +559,7 @@ const DrMinditState = {
                             completion_status: completed,
                             completed_at: completed ? new Date().toISOString() : null
                         })
-                        .eq('id', this.dbSessionId);
+                        .eq('id', this.dbSessionRecordId);
                 } catch (err) {
                     console.error('✦ DrMindit: Final session sync failed:', err);
                 }
@@ -417,39 +600,31 @@ const DrMinditState = {
             }
         }
 
-        DrMinditAudioEngine.stop();
+        // --- THE FIX: Robust Termination ---
+        DrMinditAudioEngine.stop(true); // Immediate hard stop
         this.activeSessionId = null;
         this.playerPlaying = false;
         this.playerCaption = '';
-        clearInterval(this.playerTimer);
-        this.dbSessionId = null;
+        this.sessionStatus = this.isSessionCompleted ? 'completed' : 'exited';
 
-        if (!this.showMoodCheckOut) {
+        if (this.playerTimer) clearInterval(this.playerTimer);
+        this.playerTimer = null;
+        this.dbSessionRecordId = null;
+
+        if (this.sessionStatus === 'completed') {
+            this._recordSessionEvent('complete');
+        } else {
+            this._recordSessionEvent('exit');
+        }
+        if (!this.showMoodCheckOut && !this.isSessionCompleted) {
             this.currentPage = this.previousPage || 'home';
         }
-        this.notify();
+        this.notify(); // MUST notify to clear UI/Mini-player
+        console.log(`✦ DrMindit: Session stopped. Status: ${this.sessionStatus}`);
     },
 
-    async _syncActiveSessionProgress() {
-        if (!this.dbSessionId || !window.DrMinditSupabase) return;
-
-        try {
-            await window.DrMinditSupabase
-                .from('user_sessions')
-                .update({
-                    completed_seconds: Math.floor(this.playerElapsed)
-                })
-                .eq('id', this.dbSessionId);
-
-            // LocalStorage fallback for safety
-            localStorage.setItem('drmindit_active_sync', JSON.stringify({
-                id: this.dbSessionId,
-                elapsed: this.playerElapsed,
-                ts: Date.now()
-            }));
-        } catch (err) {
-            console.error('✦ DrMindit: Background session sync failed:', err);
-        }
+    async _syncActiveSessionProgress(isCompleted = false) {
+        this._recordSessionEvent(isCompleted ? 'complete' : 'playing');
     },
 
     getSessionDuration() {
@@ -521,6 +696,30 @@ const DrMinditState = {
         clearInterval(this._calmInterval);
         this.calmNowTimer = null;
         this.notify();
+    },
+
+    cancelExit() {
+        this.showExitConfirmation = false;
+        this.notify();
+    },
+
+    finishSession() {
+        this.isSessionCompleted = true; // Set flag for celebration
+        this.stopSession(); // This will handle status = 'completed' and notify()
+    },
+
+    shareProgress() {
+        console.log('✦ DrMindit: Sharing progress...');
+        // In a real app, this would use the Web Share API
+        if (navigator.share) {
+            navigator.share({
+                title: 'DrMindit Resilience',
+                text: `I just completed a mindfulness session on DrMindit!`,
+                url: window.location.href
+            }).catch(console.error);
+        } else {
+            alert("Achievement link copied to clipboard!");
+        }
     },
 
     setFilter(key, value) {
@@ -729,5 +928,90 @@ const DrMinditState = {
                 });
         }
         this.notify();
+    },
+
+    // ── Session Event Sync & Offline Support ──
+    async _recordSessionEvent(status, extraData = {}) {
+        const event = {
+            user_id: DrMinditData.user.id || 'guest',
+            session_id: this.activeSessionId,
+            status: status,
+            timestamp: new Date().toISOString(),
+            duration_completed: Math.floor(this.playerElapsed),
+            ...extraData
+        };
+
+        console.log(`✦ DrMindit: Recording session event [${status}]`, event);
+
+        // Load queue from storage if empty
+        if (this.syncQueue.length === 0) {
+            const stored = localStorage.getItem('drmindit_sync_queue');
+            if (stored) this.syncQueue = JSON.parse(stored);
+        }
+
+        if (!navigator.onLine) {
+            console.warn('✦ DrMindit: Offline. Queuing event.');
+            this._addToSyncQueue(event);
+            return;
+        }
+
+        if (window.DrMinditSupabase) {
+            try {
+                const { data, error } = await window.DrMinditSupabase
+                    .from('user_sessions')
+                    .upsert({
+                        id: this.dbSessionRecordId || undefined,
+                        user_id: event.user_id,
+                        session_id: event.session_id,
+                        session_title: event.session_title,
+                        session_duration: event.session_duration,
+                        completed_seconds: event.duration_completed,
+                        completion_status: status === 'complete',
+                        last_updated: event.timestamp,
+                        status: status
+                    })
+                    .select('id')
+                    .single();
+
+                if (error) throw error;
+                if (data) this.dbSessionRecordId = data.id;
+
+                // If we synced successfully, try to process the rest of the queue
+                if (this.syncQueue.length > 0) this._processSyncQueue();
+            } catch (err) {
+                console.error('✦ DrMindit: Sync failed, adding to queue.', err);
+                this._addToSyncQueue(event);
+            }
+        }
+    },
+
+    _addToSyncQueue(event) {
+        this.syncQueue.push(event);
+        localStorage.setItem('drmindit_sync_queue', JSON.stringify(this.syncQueue));
+    },
+
+    async _processSyncQueue() {
+        if (!navigator.onLine || this.syncQueue.length === 0) return;
+
+        console.log('✦ DrMindit: Processing sync queue...', this.syncQueue.length);
+        const queue = [...this.syncQueue];
+        this.syncQueue = [];
+        localStorage.removeItem('drmindit_sync_queue');
+
+        for (const event of queue) {
+            await this._recordSessionEvent(event.status, event);
+        }
     }
 };
+
+// Global Listeners for Reliability
+window.addEventListener('online', () => DrMinditState._processSyncQueue());
+window.addEventListener('load', () => DrMinditState._processSyncQueue());
+
+// Handle App Backgrounding
+window.addEventListener('visibilitychange', () => {
+    if (document.hidden && DrMinditState.playerPlaying) {
+        console.log('✦ DrMindit: App backgrounded. Pausing for safety.');
+        DrMinditState.togglePlayer(); // This will pause and record the event
+    }
+});

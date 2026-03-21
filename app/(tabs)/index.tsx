@@ -19,6 +19,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useSleep } from '@/hooks/useSleep';
 import { useFocus } from '@/hooks/useFocus';
 import { useAudio } from '@/hooks/useAudio';
+import { useSessionStore } from '@/hooks/useSessionStore';
 import { moodService } from '@/services/moodService';
 import { sleepService } from '@/services/sleepService';
 import { focusService } from '@/services/focusService';
@@ -38,6 +39,7 @@ export default function HomeScreen() {
   const { todaySleep, recentSleep, saveSleep } = useSleep();
   const { todayFocus, addSession } = useFocus();
   const { speak, isSpeaking } = useAudio();
+  const { startSession, status } = useSessionStore();
 
   const [selectedMood, setSelectedMood] = useState<MoodType | undefined>(todayMood?.mood);
   const [note, setNote] = useState('');
@@ -130,10 +132,19 @@ export default function HomeScreen() {
   const todayFocusTotal = focusService.getTotalMinutes(todayFocus);
   const avgSleepHours = sleepService.getAverageHours(recentSleep);
 
-  const handleAIDemo = () => {
+  const handleAIDemo = async () => {
     const greeting = getGreeting();
     const name = profile?.full_name || 'there';
-    speak(`${greeting}, ${name}. I am your high-quality AI wellness assistant. How can I help you today?`);
+
+    // Demonstrate the new High-ROI Session Store (SM-001)
+    await startSession({
+      id: 'demo-1',
+      title: 'Afternoon Reflection',
+      duration: 5, // 5 minutes
+      audioUri: 'https://cdn.pixabay.com/audio/2022/03/24/audio_77400a4049.mp3' // Static placeholder
+    });
+
+    speak(`${greeting}, ${name}. I have started a demo session for you. You can see it in the persistent mini-player below.`);
   };
 
   return (
@@ -236,7 +247,7 @@ export default function HomeScreen() {
           {/* Sleep Card */}
           <View style={[styles.trackingCard, shadows.md, { backgroundColor: theme.surface }]}>
             <View style={styles.trackingHeader}>
-              <Ionicons name="moon" size={24} color={theme.secondary} />
+              <Ionicons name="moon" size={24} color={theme.info} />
               <Text style={[styles.trackingTitle, { color: theme.text }]}>Sleep</Text>
             </View>
             {todaySleep ? (
@@ -315,7 +326,7 @@ export default function HomeScreen() {
           {/* Focus Card */}
           <View style={[styles.trackingCard, shadows.md, { backgroundColor: theme.surface }]}>
             <View style={styles.trackingHeader}>
-              <Ionicons name="timer" size={24} color={theme.accent} />
+              <Ionicons name="timer" size={24} color={theme.primary} />
               <Text style={[styles.trackingTitle, { color: theme.text }]}>Focus</Text>
             </View>
             {todayFocusTotal > 0 ? (

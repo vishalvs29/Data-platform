@@ -355,17 +355,28 @@ const DrMinditComponents = {
                 <div class="aura-glow aura-3"></div>
                 <div class="player-bg-gradient-premium ${session.thumbGradient || 'grad-stress'}"></div>
                 
-                <!-- Close Button: High Visibility / Always Accessible -->
-                <button class="player-exit-btn-fixed" onclick="DrMinditState.requestExit(); event.stopPropagation();" aria-label="Exit session">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
+                <!-- Navigation Controls -->
+                <div class="player-nav-controls">
+                    <button class="player-back-btn" onclick="DrMinditState.goBack(); event.stopPropagation();" aria-label="Minimize player">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    
+                    <button class="player-exit-btn-fixed" onclick="DrMinditState.requestExit(); event.stopPropagation();" aria-label="Exit session">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
 
                 <!-- Exit Confirmation Modal (Conditionally Rendered) -->
                 ${DrMinditState.showExitConfirmation ? this.exitConfirmationModal() : ''}
 
-                <div class="player-main-layout-refined ${DrMinditState.showExitConfirmation ? 'modal-active' : ''}">
+                <!-- Session Completion Celebration UI (Conditionally Rendered) -->
+                ${DrMinditState.isSessionCompleted ? this.sessionCompleteCard(session) : ''}
+
+                <div class="player-main-layout-refined ${DrMinditState.showExitConfirmation || DrMinditState.isSessionCompleted ? 'modal-active' : ''}">
                     <!-- 1. Header: Elegant Typography -->
                     <div class="player-header-premium animate-fade-down ${DrMinditState.playerControlsVisible ? '' : 'controls-hidden'}">
                         <div class="session-meta-pill">${session.category.toUpperCase()} SESSION · ${session.duration} MIN</div>
@@ -477,6 +488,48 @@ const DrMinditComponents = {
         `;
     },
 
+    sessionCompleteCard(session) {
+        const affirmations = [
+            "Your mind is more resilient now.",
+            "A moment of presence changes everything.",
+            "You showed up for yourself today.",
+            "Calm is your natural state.",
+            "Peace begins with a single breath."
+        ];
+        const affirmation = affirmations[Math.floor(Math.random() * affirmations.length)];
+
+        return `
+            <div class="modal-overlay-premium animate-fade-in">
+                <div class="modal-glass-card animate-zoom-in">
+                    <div class="celebration-rings">
+                        <div class="ring-1"></div>
+                        <div class="ring-2"></div>
+                    </div>
+                    
+                    <div class="modal-icon-wrap completion-success">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    
+                    <h2 class="modal-title-elegant">Session Complete</h2>
+                    <div class="completion-stats-pill">${session.duration} Focused Minutes Added</div>
+                    
+                    <p class="modal-desc-refined" style="font-style: italic; color: #fff;">"${affirmation}"</p>
+                    
+                    <div class="modal-actions-stack">
+                        <button class="btn btn-primary btn-block modal-btn-main" onclick="DrMinditState.navigateTo('chat'); DrMinditState.sendChatMessage('I just finished my session. Let\\\'s reflect.')">
+                            Reflect with AI (Mindi)
+                        </button>
+                        <button class="btn btn-block" style="background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); margin-top: 8px;" onclick="DrMinditState.finishSession()">
+                            Return to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
 
     // ── Mini Player ──
     miniPlayer() {
@@ -494,7 +547,7 @@ const DrMinditComponents = {
                         <div class="mini-thumb ${session.thumbGradient}">${session.thumbIcon}</div>
                         <div class="mini-text">
                             <div class="mini-title">${session.title}</div>
-                            <div class="mini-subtext">${session.duration} min · Now Playing</div>
+                            <div class="mini-subtext">${session.duration} min · ${DrMinditState.sessionStatus === 'paused' ? '<span class="paused-status">Paused</span>' : 'Now Playing'}</div>
                         </div>
                     </div>
                     <div class="mini-controls" onclick="event.stopPropagation()">
@@ -896,91 +949,117 @@ const DrMinditComponents = {
         ];
 
         return `
-    <div class="notification-settings-panel" >
+            <div class="notification-settings-panel">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
                     <div>
                         <div style="font-weight:600; color:var(--text-primary);">Daily Reminders</div>
                         <div style="font-size:0.8rem; color:var(--text-muted);">Get notified to complete your session</div>
                     </div>
                     <label class="switch">
-                        <input type="checkbox" id="notif-enabled" ${settings.enabled ? 'checked' : ''} 
-                                onchange="DrMinditNotifications.saveSettings({ notifications_enabled: this.checked })">
+                        <input type="checkbox" ${settings.enabled ? 'checked' : ''} onchange="DrMinditNotifications.toggleNotifications(this.checked)">
                         <span class="slider round"></span>
                     </label>
                 </div>
 
-                <div class="form-group" style="margin-bottom:20px;">
-                    <label>Preferred Channel</label>
-                    <select id="notif-channel" onchange="const val = this.value; document.getElementById('whatsapp-settings').style.display = val === 'whatsapp' ? 'block' : 'none'; document.getElementById('telegram-settings').style.display = val === 'telegram' ? 'block' : 'none'; DrMinditNotifications.saveSettings({ preferred_channel: val })"
-                            style="width: 100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
-                        <option value="in-app" ${settings.preferredChannel === 'in-app' ? 'selected' : ''}>In-App Only</option>
-                        <option value="whatsapp" ${settings.preferredChannel === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
-                        <option value="telegram" ${settings.preferredChannel === 'telegram' ? 'selected' : ''}>Telegram</option>
+                <div class="form-group" style="margin-top:20px;">
+                    <label>Preferred Reminder Time</label>
+                    <select class="custom-select" onchange="DrMinditNotifications.updateTime(this.value)">
+                        ${timeOptions.map(t => `<option value="${t.value}" ${t.value === settings.time ? 'selected' : ''}>${t.label}</option>`).join('')}
                     </select>
-                </div>
-
-                <div id="whatsapp-settings" style="display: ${settings.preferredChannel === 'whatsapp' ? 'block' : 'none'}; margin-bottom: 20px;">
-                    <label style="display:block; margin-bottom:8px; font-size:0.9rem;">WhatsApp Number</label>
-                    <input type="tel" id="whatsapp-number" value="${settings.channelId && settings.preferredChannel === 'whatsapp' ? settings.channelId : ''}" 
-                           placeholder="+1234567890"
-                           onchange="DrMinditNotifications.saveSettings({ channel_id: this.value })"
-                           style="width: 100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
-                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Include country code (e.g., +1 for US)</div>
-                </div>
-
-                <div id="telegram-settings" style="display: ${settings.preferredChannel === 'telegram' ? 'block' : 'none'}; margin-bottom: 20px;">
-                    <label style="display:block; margin-bottom:8px; font-size:0.9rem;">Telegram Connection</label>
-                    ${settings.channelId && settings.preferredChannel === 'telegram' ? `
-                        <div style="padding:12px; background:rgba(20, 184, 166, 0.1); border-radius:8px; color:var(--accent); font-size:0.85rem; border:1px solid rgba(20, 184, 166, 0.2);">
-                            ✓ Connected to Telegram (${settings.channelId})
-                        </div>
-                    ` : `
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="telegram-id" placeholder="Your Telegram ID"
-                                   onchange="DrMinditNotifications.saveSettings({ channel_id: this.value })"
-                                   style="flex:1; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
-                            <a href="https://t.me/DrMinditMindfulBot" target="_blank" class="cta-button" 
-                               style="background:rgba(0, 136, 204, 0.1); color:#0088cc; border:1px solid #0088cc; font-size:0.85rem; display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding: 0 16px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                                Bot
-                            </a>
-                        </div>
-                    `}
-                </div>
-
-                <div class="form-group" style="margin-bottom:20px;">
-                    <label>Reminder Timing</label>
-                    <select id="notif-time" onchange="DrMinditNotifications.saveSettings({ reminder_time: this.value })"
-                            style="width: 100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-primary);">
-                        ${timeOptions.map(t => `<option value="${t.value}" ${settings.reminderTime === t.value.substring(0, 5) ? 'selected' : ''}>${t.label}</option>`).join('')}
-                    </select>
-                </div>
-
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
-                    <div>
-                        <div style="font-weight:600; color:var(--text-primary);">Streak Motivation</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted);">Celebrate consistency milestones</div>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="notif-streak" ${settings.streakMotivation ? 'checked' : ''} 
-                                onchange="DrMinditNotifications.saveSettings({ streak_motivation_enabled: this.checked })">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <button class="cta-button" style="background: rgba(20, 184, 166, 0.1); color: var(--accent); border: 1px solid var(--accent); font-size: 0.85rem;"
-                            onclick="DrMinditNotifications.requestPermission()">
-                        Enable Push
-                    </button>
-                    <button class="cta-button" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem;"
-                            onclick="DrMinditNotifications.checkAndNotify()">
-                        Test Notification
-                    </button>
                 </div>
             </div>
-    `;
+        `;
     },
+
+    // ── Chat Screen (Mindi AI) ──
+    chatScreen() {
+        const history = DrMinditState.chatHistory || [];
+        const isTyping = DrMinditState.chatTyping || false;
+
+        return `
+            <div class="page-chat animate-fade-in">
+                <header class="chat-header">
+                    <div class="chat-mindi-avatar">✦</div>
+                    <h1 class="chat-title">Talk to Mindi</h1>
+                    <div class="chat-status">Always here to support you</div>
+                </header>
+
+                <div class="chat-messages" id="chat-messages-container">
+                    ${history.length === 0 ? `
+                        <div style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+                            <div style="font-size: 40px; margin-bottom: 16px;">👋</div>
+                            <p>Hi, I'm Mindi. How are you feeling today?</p>
+                        </div>
+                    ` : history.map(msg => this.chatMessage(msg)).join('')}
+                    ${isTyping ? `
+                        <div class="message-wrap mindi">
+                            <div class="typing-indicator">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="chat-input-area">
+                    ${this.chatQuickReplies()}
+                    <form class="chat-input-wrapper" onsubmit="event.preventDefault(); const val = this.message.value; if(val.trim()) { DrMinditState.sendChatMessage(val); this.reset(); }">
+                        <input type="text" name="message" class="chat-input" placeholder="Type your reflection or how you feel..." autocomplete="off">
+                        <button type="submit" class="chat-send-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+    },
+
+    chatMessage(msg) {
+        const isMindi = msg.role === 'assistant';
+        const typeClass = isMindi ? 'mindi' : 'user';
+        const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        return `
+            <div class="message-wrap ${typeClass} animate-slide-up">
+                <div class="message-bubble">
+                    ${msg.text}
+                    ${msg.action ? `
+                        <div class="chat-action-card">
+                            <div class="action-card-title">${msg.action.title}</div>
+                            <button class="action-card-btn" onclick="${msg.action.handler}">
+                                ${msg.action.label}
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+    },
+
+    chatQuickReplies() {
+        const replies = [
+            "I feel anxious",
+            "Help me focus",
+            "Can't sleep",
+            "Reflect on last session"
+        ];
+
+        return `
+            <div class="quick-replies">
+                ${replies.map(r => `
+                    <div class="reply-chip" onclick="DrMinditState.sendChatMessage('${r}')">
+                        ${r}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    },
+
     // ── Platform Gateway Card ──
     gatewayCard(platform) {
         return `

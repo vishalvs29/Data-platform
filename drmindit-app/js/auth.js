@@ -16,6 +16,16 @@ const DrMinditAuth = {
     // populates DrMinditData.user from the DB profile.
     // ─────────────────────────────────────────────
     async init() {
+        // ── Testing Bypass ──
+        if (localStorage.getItem('drmindit_test_mode') === 'true') {
+            console.log('✦ DrMindit Auth: Test Mode Active. Injecting mock session.');
+            this.session = { user: { id: 'test-user-123', email: 'test@drmindit.com' } };
+            this.user = this.session.user;
+            DrMinditData.user.id = this.user.id;
+            DrMinditData.user.name = 'Test User';
+            return this.session;
+        }
+
         if (!window.DrMinditSupabase) {
             console.error('✦ DrMindit Auth: Supabase client not found.');
             return null;

@@ -101,6 +101,18 @@ const DrMinditPages = {
                     </div>
                 </div>
 
+                <!-- Mindi AI Quick Access Card -->
+                <div class="mindi-home-card animate-fade-in-up" onclick="DrMinditState.navigateTo('chat')" style="margin: 0 16px 24px; padding: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(20, 184, 166, 0.2);">✦</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">Talk to Mindi</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">Reflect on your day or get a recommendation.</div>
+                    </div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </div>
+
                 <!-- Featured Session -->
                 ${featured ? DrMinditComponents.featuredCard(featured) : ''}
 
@@ -341,103 +353,96 @@ const DrMinditPages = {
         const user = DrMinditData.user;
         const preMoods = user.moodHistory.map(h => h.pre);
         const postMoods = user.moodHistory.map(h => h.post);
-        const avgImprovement = (user.moodHistory.reduce((a, b) => a + (b.post - b.pre), 0) / user.moodHistory.length).toFixed(1);
+        const avgImprovement = (user.moodHistory.reduce((a, b) => a + (b.post - b.pre), 0) / (user.moodHistory.length || 1)).toFixed(1);
 
         return `
             <div class="page-insights page-enter">
-                <div class="insights-header">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                        <div>
-                            <div style="font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;">GROWTH VIEW</div>
-                            <div class="insights-title">Progress Insights</div>
-                        </div>
-                        ${DrMinditComponents.privacyBadge()}
+                <div class="insights-top-premium animate-fade-down">
+                    <div class="insights-header-group">
+                        <div class="subtitle-premium">PERSONAL GROWTH</div>
+                        <h1 class="title-premium">Your Progress</h1>
                     </div>
                 </div>
 
-                <!-- Stats Row -->
-                <div class="insights-stats stagger-children">
-                    ${DrMinditComponents.statCard(user.totalMinutesPracticed.toLocaleString() + ' min', 'Total Practice', 8)}
-                    ${DrMinditComponents.statCard(user.currentStreak + ' 🔥', 'Day Streak', 15)}
-                    ${DrMinditComponents.statCard(user.totalSessions, 'Sessions', null)}
-                    ${DrMinditComponents.statCard('+' + avgImprovement, 'Avg Mood Lift', null)}
-                </div>
-
-                <div class="insights-body">
-
-                    <!-- AI Insight Card -->
-                    ${DrMinditComponents.aiInsightCard()}
-
-                    <!-- Pre/Post Mood Chart -->
-                    <div class="mood-chart-container">
-                        <div class="mood-chart-header">
-                            <span class="mood-chart-title">Mood Trend (Pre vs Post)</span>
-                            <span class="mood-chart-period">Last 7 Sessions</span>
+                <div class="insights-body-refined">
+                    <!-- 1. The Streak Fire (Central Focus) -->
+                    <div class="streak-fire-card-premium animate-fade-in-up">
+                        <div class="fire-glow-effect"></div>
+                        <div class="streak-content-main">
+                            <div class="streak-number-premium">${user.currentStreak}</div>
+                            <div class="streak-label-premium">DAY STREAK</div>
+                            <div class="streak-moto-premium">"Keep showing up for yourself."</div>
                         </div>
-                        ${DrMinditPages._dualMoodChart(preMoods, postMoods)}
-                        <div style="display:flex;gap:16px;padding:0 8px 8px;">
-                            <div style="display:flex;align-items:center;gap:6px;"><div style="width:10px;height:10px;border-radius:50%;background:#64748b;"></div><span style="font-size:11px;color:var(--text-muted);">Before Session</span></div>
-                            <div style="display:flex;align-items:center;gap:6px;"><div style="width:10px;height:10px;border-radius:50%;background:#14b8a6;"></div><span style="font-size:11px;color:var(--text-muted);">After Session</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Emotion Tags Summary -->
-                    <div class="mood-chart-container">
-                        <div class="mood-chart-header">
-                            <span class="mood-chart-title">Emotion Patterns</span>
-                            <span class="mood-chart-period">This Week</span>
-                        </div>
-                        <div class="emotion-tag-cloud">
-                            ${DrMinditPages._emotionTagCloud(user.moodHistory)}
+                        <div class="streak-stats-row">
+                            <div class="s-stat">
+                                <span class="s-val">${user.totalMinutesPracticed.toLocaleString()}</span>
+                                <span class="s-lab">Mins</span>
+                            </div>
+                            <div class="s-divider"></div>
+                            <div class="s-stat">
+                                <span class="s-val">${user.totalSessions}</span>
+                                <span class="s-lab">Sessions</span>
+                            </div>
+                            <div class="s-divider"></div>
+                            <div class="s-stat">
+                                <span class="s-val">${avgImprovement}</span>
+                                <span class="s-lab">Mood Lift</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Burnout Risk -->
-                    <div class="mood-chart-container">
-                        <div class="mood-chart-header">
-                            <span class="mood-chart-title">Burnout Risk Assessment</span>
-                            <span class="mood-chart-period">AI Analysis</span>
+                    <!-- 2. AI Intelligence Card -->
+                    <div class="ai-insight-box-premium animate-fade-in-up" style="animation-delay: 0.1s">
+                        <div class="ai-header-premium">
+                            <span class="ai-sparkle">✦</span>
+                            <span class="ai-title">Resilience AI</span>
                         </div>
-                        <div style="padding: 16px 0;">
-                            ${DrMinditComponents.burnoutMeter(user.burnoutScore)}
+                        <p class="ai-text-premium">${DrMinditData.getResilienceSummary()}</p>
+                    </div>
+
+                    <!-- 3. Mood Evolution Chart -->
+                    <div class="chart-glass-card animate-fade-in-up" style="animation-delay: 0.2s">
+                        <div class="chart-header-premium">
+                            <h3>Mood Trend</h3>
+                            <span>Last 7 Sessions</span>
+                        </div>
+                        <div class="chart-viewport-premium">
+                            ${DrMinditPages._dualMoodChart(preMoods, postMoods)}
+                        </div>
+                        <div class="chart-legend-premium">
+                            <div class="legend-item"><span class="dot be"></span> Before</div>
+                            <div class="legend-item"><span class="dot af"></span> After</div>
                         </div>
                     </div>
 
-                    <!-- AI Resilience Summary -->
-                    <div class="resilience-card animate-fade-in-up">
-                        <h3>🤖 Weekly Resilience Summary</h3>
-                        <p>${DrMinditData.getResilienceSummary()}</p>
-                    </div>
-
-                    <!-- Sleep Quality -->
-                    <div class="mood-chart-container">
-                        <div class="mood-chart-header">
-                            <span class="mood-chart-title">Sleep Quality</span>
-                            <span class="mood-chart-period">Last 7 Nights</span>
+                    <!-- 4. Weekly Activity -->
+                    <div class="chart-glass-card animate-fade-in-up" style="animation-delay: 0.3s">
+                        <div class="chart-header-premium">
+                            <h3>Weekly Activity</h3>
+                            <span>Minutes practiced</span>
                         </div>
-                        ${DrMinditPages._miniBarChart(user.sleepHistory)}
+                        <div class="activity-bars-container">
+                            ${DrMinditPages._miniBarChart(user.sleepHistory)} <!-- Reusing bar chart logic -->
+                        </div>
                     </div>
 
-                    <!-- Achievements -->
-                    <div class="section-header" style="padding-left:0;padding-right:0;">
-                        <span class="section-title">Achievements</span>
+                    <!-- 5. Achievements (Horizontal Scroll) -->
+                    <div class="achievements-section-premium animate-fade-in-up" style="animation-delay: 0.4s">
+                        <div class="section-header-pill">ACHIEVEMENTS</div>
+                        <div class="achievement-scroll-wrap">
+                            ${DrMinditComponents.achievementGrid(DrMinditData.achievements)}
+                        </div>
                     </div>
-                    ${DrMinditComponents.achievementGrid(DrMinditData.achievements)}
-                </div>
 
-                <div style="padding: 0 16px;">
-                    ${DrMinditComponents.narratorSettings()}
-                </div>
-
-                <div style="height: 24px;"></div>
-                
-                <div style="padding: 0 16px 40px; text-align: center;">
-                    <button class="nav-cta" style="width: 100%; height: 50px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444;"
-                            onclick="DrMinditState.logout()">
-                        Sign Out
-                    </button>
-                    <div style="margin-top: 16px; font-size: 11px; color: var(--text-muted);">
-                        Secure Session · AES-256 Encrypted
+                    <!-- 6. Footer Actions -->
+                    <div class="insights-footer-premium">
+                        <button class="btn-logout-minimal" onclick="DrMinditState.logout()">
+                            <span>Sign Out Securely</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="secure-label-premium">✦ AES-256 Encrypted Session</div>
                     </div>
                 </div>
             </div>
@@ -612,6 +617,13 @@ const DrMinditPages = {
                 </div>
             </div>
         `;
+    },
+
+    // ═══════════════════════════════════════════
+    // CHAT PAGE (Mindi AI)
+    // ═══════════════════════════════════════════
+    chat() {
+        return DrMinditComponents.chatScreen();
     },
 
     // ═══════════════════════════════════════════
