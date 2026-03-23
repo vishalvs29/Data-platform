@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { buildSystemPrompt, parseChatActions, ChatAction } from '../services/chatService';
+import { sendMessageToAI, ChatAction } from '../services/chatService';
 
 export interface ChatMessage {
     id: string;
@@ -13,30 +13,34 @@ export interface ChatMessage {
 interface ChatState {
     messages: ChatMessage[];
     isTyping: boolean;
+    sessionId: string; // Unique per conversation, sent to Edge Function for chat history
 
     // Actions
-    sendMessage: (text: string, context: any) => Promise<void>;
-    retryLastMessage: (context: any) => Promise<void>;
+    sendMessage: (text: string) => Promise<void>;
+    retryLastMessage: () => Promise<void>;
     clearHistory: () => void;
 }
 
 /**
- * useChatStore: Manages the conversation state and AI interactions.
- * Implements typing indicators and empathetic error handling.
+ * useChatStore: Manages conversation state and AI interactions.
+ *
+ * Security: AI calls now go through the Supabase Edge Function (see services/chatService.ts).
+ * Claude API key is server-side only — never in the client bundle.
  */
 export const useChatStore = create<ChatState>((set, get) => ({
     messages: [
         {
             id: 'welcome',
             role: 'assistant',
-            text: "Hello! I'm Mindi. How are you feeling today?",
+            text: "Hello! I'm Mindi, your mental wellness companion. How are you feeling today?",
             timestamp: new Date(),
             status: 'sent'
         }
     ],
     isTyping: false,
+    sessionId: `session-${Date.now()}`, // Unique ID for this chat session
 
-    sendMessage: async (text, context) => {
+    sendMessage: async (text) => {
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
             role: 'user',
@@ -45,29 +49,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
             status: 'sent'
         };
 
-        // 1. Append user message and set typing
+        // 1. Optimistically append user message and show typing indicator
         set(state => ({
             messages: [...state.messages, userMsg],
             isTyping: true
         }));
 
         try {
-            // 2. Build Prompt
-            const systemPrompt = buildSystemPrompt(context);
-
-            // 3. Mock API Call (In production, this calls a real LLM)
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            const rawAiResponse = "I understand you're feeling a bit stressed. Would you like to try a quick breathing exercise? [ACTION: {\"type\": \"start_session\", \"payload\": {\"sessionId\": \"breathe-1\"}}]";
-
-            // 4. Parse Actions
-            const { cleanText, actions } = parseChatActions(rawAiResponse);
+            // 2. Call Edge Function — secure, server-side Claude call
+            const { reply, actions } = await sendMessageToAI(text, get().sessionId);
 
             const aiMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                text: cleanText,
+                text: reply,
                 timestamp: new Date(),
                 status: 'sent',
                 actions
@@ -77,10 +72,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 messages: [...state.messages, aiMsg],
                 isTyping: false
             }));
-        } catch (error) {
-            console.error('Chat API Error:', error);
 
-            // 5. Empathetic Error Handling (No empty bubbles!)
+        } catch (error) {
+            console.error('✦ useChatStore: sendMessage error:', error);
+
+            // Empathetic error state — never show empty bubbles
             const errorMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
@@ -96,13 +92,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
     },
 
-    retryLastMessage: async (context) => {
+    retryLastMessage: async () => {
         const { messages } = get();
         const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
         if (lastUserMsg) {
-            await get().sendMessage(lastUserMsg.text, context);
+            // Remove the last error bubble before retrying
+            set(state => ({
+                messages: state.messages.filter(m => m.status !== 'error')
+            }));
+            await get().sendMessage(lastUserMsg.text);
         }
     },
 
-    clearHistory: () => set({ messages: [] })
+    clearHistory: () => set({
+        messages: [],
+        sessionId: `session-${Date.now()}` // Fresh session ID on clear
+    })
 }));
