@@ -1,22 +1,23 @@
 import cron from 'node-cron';
 import { runFullAnalyticsPipeline } from '../services/analytics';
+import { runIntelligencePipeline } from '../services/intelligence';
+import { runJob } from '../services/jobRunner';
 
 export const initScheduler = () => {
-    // Run full intelligence pipeline daily at 2 AM
+    // 1. Daily Analytics & Metrics Aggregation (2:00 AM)
     cron.schedule('0 2 * * *', async () => {
-        console.log('Starting daily intelligence pipeline job...');
-        try {
-            await runFullAnalyticsPipeline();
-            console.log('Intelligence pipeline completed successfully');
-        } catch (error) {
-            console.error('Intelligence pipeline failed:', error);
-        }
+        await runJob(runFullAnalyticsPipeline, { name: 'DailyAnalyticsPipeline' });
     });
 
-    // Health check every 6 hours
+    // 2. Intelligence & Personalization Pipeline (3:00 AM)
+    cron.schedule('0 3 * * *', async () => {
+        await runJob(runIntelligencePipeline, { name: 'IntelligenceEnginePipeline' });
+    });
+
+    // 3. Health check every 6 hours
     cron.schedule('0 */6 * * *', () => {
         console.log('Background worker health check: OK');
     });
 
-    console.log('Background scheduler initialized (Daily 2 AM job enabled)');
+    console.log('Advanced Scheduler initialized (Production-Grade JobRunner enabled)');
 };

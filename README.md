@@ -37,6 +37,19 @@ graph TD
 ### Database Setup
 Apply the latest `schema.sql` found in the root directory to your Supabase SQL Editor. This initializes all tables, RLS policies, indexes, and RPC functions.
 
+## 🧠 Advanced Intelligence Engine
+The platform features a multi-factor intelligence layer that provides personalized, explainable insights:
+
+- **Personalization**: Computes user-specific baselines (14-day rolling averages) to detect meaningful deviations rather than using fixed thresholds.
+- **Multi-Factor Analysis**: Correlates mood fluctuations with session completion, app engagement, and behavioral patterns (e.g., Burnout Detection).
+- **Rich Insights**: Every insight includes:
+    - **Confidence Score**: Probability of the insight's accuracy (0.0 - 1.0).
+    - **Reasons**: A structured list of contributing factors for full explainability.
+    - **Recommendations**: Personalized, actionable next steps.
+- **Production-Grade Reliability**: Backend jobs run with a dedicated `JobRunner` featuring:
+    - **Exponential Backoff**: Automatic retries for failed analytics tasks.
+    - **Execution Tracking**: Detailed logs in `job_logs` for monitoring and debugging.
+
 ### Intelligent Serving Layer
 High-performance endpoints providing precomputed insights and trends.
 
@@ -44,11 +57,9 @@ High-performance endpoints providing precomputed insights and trends.
 | :--- | :--- | :--- |
 | `/api/mood` | POST | Log user mood (1-10) and notes. |
 | `/api/session` | POST | Track completed meditation/breathing sessions. |
-| `/api/events` | POST | Capture arbitrary user interaction events. |
-| `/api/trends` | GET | **New**: Returns daily/weekly trends and mood direction. |
-| `/api/risk` | GET | **New**: Returns risk level (low/medium/high) and reasoning. |
-| `/api/insights`| GET | Retrieve AI-generated behavioral insights & recommendations. |
-| `/api/user-summary`| GET | High-level metrics (Avg mood, engagement score). |
+| `/api/trends` | GET | Returns personalized daily/weekly trends and mood direction. |
+| `/api/risk` | GET | Returns explainable risk level (Low/Med/High) with reasons. |
+| `/api/insights`| GET | Retrieve rich AI-generated insights & recommendations. |
 
 ## 🧠 Intelligence Engine
 The platform automatically detects patterns using a sophisticated rules engine:

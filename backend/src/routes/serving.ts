@@ -11,13 +11,17 @@ router.get('/insights', async (req: Request, res: Response) => {
     try {
         const { data, error } = await supabase
             .from('insights')
-            .select('*')
+            .select('id, type, content, confidence, reasons, recommendation, created_at')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(10);
 
         if (error) throw error;
-        res.json({ success: true, data });
+        res.json({
+            success: true,
+            count: data?.length || 0,
+            data
+        });
     } catch (error: any) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -66,18 +70,21 @@ router.get('/risk', async (req: Request, res: Response) => {
     try {
         const { data: insights } = await supabase
             .from('insights')
-            .select('type, content, metadata')
+            .select('type, content, confidence, reasons, recommendation, metadata')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(5);
 
-        const riskInsight = insights?.find(i => i.metadata?.category === 'risk');
+        const riskInsight = insights?.find(i => i.metadata?.category === 'risk' || i.type.toLowerCase().includes('risk'));
 
         res.json({
             success: true,
             data: {
-                risk_level: riskInsight ? riskInsight.metadata.riskLevel : 'low',
+                risk_level: riskInsight ? (riskInsight.metadata?.riskLevel || 'medium') : 'low',
                 reason: riskInsight ? riskInsight.content : 'No significant risks detected recently.',
+                confidence: riskInsight ? riskInsight.confidence : 1.0,
+                detailed_reasons: riskInsight ? riskInsight.reasons : [],
+                recommendation: riskInsight ? riskInsight.recommendation : 'Keep up with your current routine.',
                 latest_findings: insights?.map(i => i.type) || []
             }
         });
