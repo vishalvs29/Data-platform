@@ -1,14 +1,19 @@
 import cron from 'node-cron';
-import { runAnalytics } from '../services/analytics';
+import { runFullAnalyticsPipeline } from '../services/analytics';
 
 export const initScheduler = () => {
-    // Run daily aggregation and insight generation at 2 AM
+    // Run full intelligence pipeline daily at 2 AM
     cron.schedule('0 2 * * *', async () => {
-        console.log('Starting daily aggregation job...');
-        await runAnalytics();
+        console.log('Starting daily intelligence pipeline job...');
+        try {
+            await runFullAnalyticsPipeline();
+            console.log('Intelligence pipeline completed successfully');
+        } catch (error) {
+            console.error('Intelligence pipeline failed:', error);
+        }
     });
 
-    // Run a quick check every 6 hours for performance monitoring / health
+    // Health check every 6 hours
     cron.schedule('0 */6 * * *', () => {
         console.log('Background worker health check: OK');
     });

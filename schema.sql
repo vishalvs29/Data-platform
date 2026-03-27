@@ -247,7 +247,38 @@ CREATE RULE audit_log_no_update AS ON UPDATE TO public.audit_log DO INSTEAD NOTH
 CREATE RULE audit_log_no_delete AS ON DELETE TO public.audit_log DO INSTEAD NOTHING;
 
 -- ============================================================
--- TRIGGERS
+-- 13. USER_DAILY_METRICS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.user_daily_metrics (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  date              DATE        NOT NULL DEFAULT CURRENT_DATE,
+  avg_mood          NUMERIC(4,2),
+  session_count     INTEGER     DEFAULT 0,
+  completion_rate   NUMERIC(5,2),
+  active_duration   INTEGER     DEFAULT 0, -- in seconds
+  updated_at        TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, date)
+);
+
+-- ============================================================
+-- 14. USER_WEEKLY_METRICS
+-- ============================================================
+CREATE TYPE mood_direction_enum AS ENUM ('improving', 'declining', 'stable');
+
+CREATE TABLE IF NOT EXISTS public.user_weekly_metrics (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  week_start        DATE        NOT NULL,
+  avg_mood          NUMERIC(4,2),
+  mood_direction    mood_direction_enum,
+  engagement_score  INTEGER     CHECK (engagement_score BETWEEN 0 AND 100),
+  updated_at        TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, week_start)
+);
+
+-- ============================================================
+-- 15. TRIGGERS
 -- ============================================================
 
 -- ── updated_at auto-maintenance ──────────────────────────────
@@ -269,6 +300,14 @@ CREATE TRIGGER trg_organizations_updated_at
 
 CREATE TRIGGER trg_journal_updated_at
   BEFORE UPDATE ON public.journal_entries
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_user_daily_metrics_updated_at
+  BEFORE UPDATE ON public.user_daily_metrics
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER trg_user_weekly_metrics_updated_at
+  BEFORE UPDATE ON public.user_weekly_metrics
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── Generic audit trigger factory ───────────────────────────
@@ -349,6 +388,8 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_user            ON public.audit_log(use
 CREATE INDEX IF NOT EXISTS idx_events_user_timestamp     ON public.events(user_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_ts     ON public.user_sessions(user_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_insights_user_created     ON public.insights(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_metrics_user_date    ON public.user_daily_metrics(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_weekly_metrics_user_week   ON public.user_weekly_metrics(user_id, week_start DESC);
 
 -- ============================================================
 -- ROW LEVEL SECURITY
@@ -369,6 +410,8 @@ ALTER TABLE public.audit_log          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_sessions      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.insights           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_daily_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_weekly_metrics ENABLE ROW LEVEL SECURITY;
 
 -- ── Helper: get the current user's org_id ───────────────────
 CREATE OR REPLACE FUNCTION public.my_org_id()
@@ -555,6 +598,12 @@ CREATE POLICY "user_sessions_insert_own" ON public.user_sessions FOR INSERT WITH
 CREATE POLICY "insights_select_own" ON public.insights FOR SELECT USING (auth.uid() = user_id);
 
 -- ─────────────────────────────────────────────────────────────
+-- METRICS policies
+-- ─────────────────────────────────────────────────────────────
+CREATE POLICY "daily_metrics_select_own" ON public.user_daily_metrics FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "weekly_metrics_select_own" ON public.user_weekly_metrics FOR SELECT USING (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────
 -- AUDIT_LOG  — no user access; service_role only
 -- ─────────────────────────────────────────────────────────────
 -- Audit log is written by SECURITY DEFINER trigger — not by users.
@@ -581,5 +630,7 @@ GRANT SELECT                         ON public.org_analytics      TO authenticat
 GRANT SELECT, INSERT                 ON public.events             TO authenticated;
 GRANT SELECT, INSERT                 ON public.user_sessions      TO authenticated;
 GRANT SELECT                         ON public.insights           TO authenticated;
+GRANT SELECT                         ON public.user_daily_metrics TO authenticated;
+GRANT SELECT                         ON public.user_weekly_metrics TO authenticated;
 -- audit_log: no direct access for authenticated role
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;

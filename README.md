@@ -37,24 +37,33 @@ graph TD
 ### Database Setup
 Apply the latest `schema.sql` found in the root directory to your Supabase SQL Editor. This initializes all tables, RLS policies, indexes, and RPC functions.
 
-## 📡 API Documentation
+### Intelligent Serving Layer
+High-performance endpoints providing precomputed insights and trends.
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
 | `/api/mood` | POST | Log user mood (1-10) and notes. |
 | `/api/session` | POST | Track completed meditation/breathing sessions. |
 | `/api/events` | POST | Capture arbitrary user interaction events. |
-| `/api/insights` | GET | Retrieve AI-generated behavioral insights. |
-| `/api/mood-trends`| GET | Time-series data for mood visualization. |
-| `/api/user-summary`| GET | High-level metrics (Avg mood, completion rate). |
+| `/api/trends` | GET | **New**: Returns daily/weekly trends and mood direction. |
+| `/api/risk` | GET | **New**: Returns risk level (low/medium/high) and reasoning. |
+| `/api/insights`| GET | Retrieve AI-generated behavioral insights & recommendations. |
+| `/api/user-summary`| GET | High-level metrics (Avg mood, engagement score). |
+
+## 🧠 Intelligence Engine
+The platform automatically detects patterns using a sophisticated rules engine:
+- **Low Mood Streak**: 3+ days with mood < 3.
+- **Emotional Instability**: High standard deviation in mood scores.
+- **Mood Direction**: Comparative weekly analysis (Improving/Declining/Stable).
+- **Drop-off Detection**: Automated pings after 3 days of inactivity.
 
 > [!IMPORTANT]
 > All requests must include the `x-api-key` header for authentication.
 
 ## 🛡 Security & Privacy
-- **Row Level Security (RLS)**: Enforced at the database level to ensure users can only access their own data.
-- **Audit Logging**: All sensitive mutations are captured in a tamper-proof audit log.
-- **Validation**: Strict input validation using Zod prevents malformed data ingestion.
+- **Row Level Security (RLS)**: Enforced at the database level.
+- **Audit Logging**: All sensitive mutations are captured.
+- **Zod Validation**: Prevents malformed data ingestion.
 For a full list of dependencies, see [package.json](./package.json).
 
 ## Development Tools
