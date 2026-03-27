@@ -1,55 +1,60 @@
-# Welcome to OnSpace AI
+# DrMindit Data Platform
 
-Onspace AI empowers anyone to turn ideas into powerful AI applications in minutes—no coding required. Our free, no-code platform enables effortless creation of custom AI apps; simply describe your vision and our agentic AI handles the rest. The onspace-app, built with React Native and Expo, demonstrates this capability—integrating popular third-party libraries to deliver seamless cross-platform performance across iOS, Android, and Web environments.
+A production-ready mental health analytics platform supporting real-time data ingestion, automated ETL processing, and insight generation.
 
-## Getting Started
+## 🏗 Architecture Overview
 
-### 1. Install Dependencies
-
-```bash
-npm install
-# or
-yarn install
+```mermaid
+graph TD
+    A[Mobile/Web App] -->|HTTPS| B[Node.js API Ingestion]
+    B -->|Store| C[(PostgreSQL/Supabase)]
+    D[Background Jobs] -->|Read/ETL| C
+    D -->|Generate Insights| C
+    E[Serving API] -->|GET Trends/Insights| C
+    A -->|Fetch| E
 ```
 
-### 2. Start the Project
+### Key Components
 
-- Start the development server (choose your platform):
+1.  **Ingestion Layer**: REST APIs for mood logs, user sessions, and custom events.
+2.  **Storage Layer**: PostgreSQL schema optimized for time-series mental health data.
+3.  **Analytics Engine**: Background jobs detecting low mood streaks, stress spikes, and engagement warnings.
+4.  **Serving Layer**: High-performance endpoints for aggregated trends and personalized insights.
 
-```bash
-npm run start         # Start Expo development server
-npm run android       # Launch Android emulator
-npm run ios           # Launch iOS simulator
-npm run web           # Start the web version
-```
+## 🚀 Getting Started
 
-- Reset the project (clear cache, etc.):
+### Prerequisites
+- Node.js v18+
+- Supabase Project (PostgreSQL)
 
-```bash
-npm run reset-project
-```
+### Backend Setup
+1. `cd backend`
+2. `npm install`
+3. `cp .env.example .env` (Fill in your Supabase credentials and API keys)
+4. `npm run build`
+5. `npm start` (or `npm run dev` for development)
 
-### 3. Lint the Code
+### Database Setup
+Apply the latest `schema.sql` found in the root directory to your Supabase SQL Editor. This initializes all tables, RLS policies, indexes, and RPC functions.
 
-```bash
-npm run lint
-```
+## 📡 API Documentation
 
-## Main Dependencies
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/api/mood` | POST | Log user mood (1-10) and notes. |
+| `/api/session` | POST | Track completed meditation/breathing sessions. |
+| `/api/events` | POST | Capture arbitrary user interaction events. |
+| `/api/insights` | GET | Retrieve AI-generated behavioral insights. |
+| `/api/mood-trends`| GET | Time-series data for mood visualization. |
+| `/api/user-summary`| GET | High-level metrics (Avg mood, completion rate). |
 
-- React Native: 0.79.4
-- React: 19.0.0
-- Expo: ~53.0.12
-- Expo Router: ~5.1.0
-- Supabase: ^2.50.0
-- Other commonly used libraries:  
-  - @expo/vector-icons  
-  - react-native-paper  
-  - react-native-calendars  
-  - lottie-react-native  
-  - react-native-webview  
-  - and more
+> [!IMPORTANT]
+> All requests must include the `x-api-key` header for authentication.
 
+## 🛡 Security & Privacy
+- **Row Level Security (RLS)**: Enforced at the database level to ensure users can only access their own data.
+- **Audit Logging**: All sensitive mutations are captured in a tamper-proof audit log.
+- **Validation**: Strict input validation using Zod prevents malformed data ingestion.
 For a full list of dependencies, see [package.json](./package.json).
 
 ## Development Tools

@@ -1,5 +1,11 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+# Backend
+backend/node_modules
+backend/dist
+backend/.env
+backend/logs
+
 # dependencies
 node_modules/
 

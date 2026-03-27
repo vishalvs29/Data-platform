@@ -173,7 +173,42 @@ CREATE TABLE IF NOT EXISTS public.crisis_events (
 );
 
 -- ============================================================
--- 9. ORG_ANALYTICS  (pre-aggregated, no user-level data)
+-- 9. EVENTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.events (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  event_type  TEXT        NOT NULL,
+  metadata    JSONB       DEFAULT '{}',
+  timestamp   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 10. USER_SESSIONS (Generic sessions)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.user_sessions (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  session_type     TEXT        NOT NULL,
+  duration_seconds INTEGER     NOT NULL CHECK (duration_seconds >= 0),
+  completed        BOOLEAN     NOT NULL DEFAULT true,
+  timestamp        TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 11. INSIGHTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.insights (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  type        TEXT        NOT NULL,   -- 'mood_streak', 'stress_spike', etc.
+  content     TEXT        NOT NULL,
+  metadata    JSONB       DEFAULT '{}',
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 12. ORG_ANALYTICS  (pre-aggregated, no user-level data)
 -- Populated by a nightly Edge Function / pg_cron job — never
 -- generated from a direct user query.
 -- ============================================================
@@ -260,7 +295,8 @@ DECLARE
 BEGIN
   FOREACH tbl IN ARRAY ARRAY[
     'mood_logs', 'journal_entries', 'sleep_logs',
-    'breathing_sessions', 'ai_chat_sessions', 'crisis_events'
+    'breathing_sessions', 'ai_chat_sessions', 'crisis_events',
+    'events', 'user_sessions', 'insights'
   ] LOOP
     EXECUTE format(
       'CREATE TRIGGER trg_audit_%s
@@ -310,6 +346,9 @@ CREATE INDEX IF NOT EXISTS idx_crisis_events_unresolved  ON public.crisis_events
 CREATE INDEX IF NOT EXISTS idx_org_analytics_org_period  ON public.org_analytics(org_id, period_start DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_log_table_row       ON public.audit_log(table_name, row_id);
 CREATE INDEX IF NOT EXISTS idx_audit_log_user            ON public.audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_events_user_timestamp     ON public.events(user_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user_ts     ON public.user_sessions(user_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_insights_user_created     ON public.insights(user_id, created_at DESC);
 
 -- ============================================================
 -- ROW LEVEL SECURITY
@@ -327,6 +366,9 @@ ALTER TABLE public.ai_chat_messages   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crisis_events      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_analytics      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_log          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_sessions      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.insights           ENABLE ROW LEVEL SECURITY;
 
 -- ── Helper: get the current user's org_id ───────────────────
 CREATE OR REPLACE FUNCTION public.my_org_id()
@@ -349,6 +391,14 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT COALESCE(is_counselor, false)
   FROM public.users WHERE id = auth.uid();
 $$;
+
+-- ── Helper: calculate avg mood for a user ───────────────────
+CREATE OR REPLACE FUNCTION public.calculate_avg_mood(user_uuid UUID)
+RETURNS NUMERIC AS $$
+  SELECT AVG(mood_score)::NUMERIC(4,2)
+  FROM public.mood_logs
+  WHERE user_id = user_uuid;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- ─────────────────────────────────────────────────────────────
 -- USERS policies
@@ -488,6 +538,23 @@ CREATE POLICY "service_role_insert_analytics" ON public.org_analytics
   FOR INSERT WITH CHECK (false);
 
 -- ─────────────────────────────────────────────────────────────
+-- EVENTS policies
+-- ─────────────────────────────────────────────────────────────
+CREATE POLICY "events_select_own" ON public.events FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "events_insert_own" ON public.events FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- USER_SESSIONS policies
+-- ─────────────────────────────────────────────────────────────
+CREATE POLICY "user_sessions_select_own" ON public.user_sessions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "user_sessions_insert_own" ON public.user_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- INSIGHTS policies
+-- ─────────────────────────────────────────────────────────────
+CREATE POLICY "insights_select_own" ON public.insights FOR SELECT USING (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────
 -- AUDIT_LOG  — no user access; service_role only
 -- ─────────────────────────────────────────────────────────────
 -- Audit log is written by SECURITY DEFINER trigger — not by users.
@@ -511,5 +578,8 @@ GRANT SELECT, INSERT, UPDATE         ON public.ai_chat_sessions   TO authenticat
 GRANT SELECT, INSERT                 ON public.ai_chat_messages   TO authenticated;
 GRANT SELECT, UPDATE                 ON public.crisis_events      TO authenticated;
 GRANT SELECT                         ON public.org_analytics      TO authenticated;
+GRANT SELECT, INSERT                 ON public.events             TO authenticated;
+GRANT SELECT, INSERT                 ON public.user_sessions      TO authenticated;
+GRANT SELECT                         ON public.insights           TO authenticated;
 -- audit_log: no direct access for authenticated role
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
