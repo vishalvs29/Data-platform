@@ -285,6 +285,8 @@ CREATE TABLE IF NOT EXISTS public.user_weekly_metrics (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.user_profiles (
   user_id           UUID        PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  role              TEXT        DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  org_id            TEXT,       -- Simplified organization identifier
   baseline_mood     NUMERIC(4,2) DEFAULT 5.0,
   engagement_baseline NUMERIC(4,2) DEFAULT 0.0,
   last_baseline_update TIMESTAMPTZ DEFAULT NOW(),

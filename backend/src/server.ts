@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import ingestionRouter from './routes/ingestion';
 import servingRouter from './routes/serving';
+import adminRouter from './routes/admin';
 import { createLogger, format, transports } from 'winston';
 import { initScheduler } from './jobs/scheduler';
 
@@ -44,6 +45,7 @@ const apiKeyMiddleware = (req: express.Request, res: express.Response, next: exp
 // Routes
 app.use('/api', apiKeyMiddleware, ingestionRouter);
 app.use('/api', apiKeyMiddleware, servingRouter);
+app.use('/api/admin', adminRouter);
 
 // Basic Health Check
 app.get('/health', (req, res) => {
