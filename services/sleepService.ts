@@ -6,9 +6,9 @@ export const sleepService = {
     try {
       const supabase = getSupabaseClient();
       const today = new Date().toISOString().split('T')[0];
-      
+
       const { data, error } = await supabase
-        .from('sleep_sessions')
+        .from('sleep_logs')
         .select('*')
         .eq('user_id', userId)
         .eq('date', today)
@@ -25,7 +25,7 @@ export const sleepService = {
     try {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
-        .from('sleep_sessions')
+        .from('sleep_logs')
         .select('*')
         .eq('user_id', userId)
         .order('date', { ascending: false })
@@ -48,14 +48,23 @@ export const sleepService = {
       const supabase = getSupabaseClient();
       const today = new Date().toISOString().split('T')[0];
 
+      // Map quality to quality_score
+      const qualityMap: Record<SleepQuality, number> = {
+        excellent: 10,
+        good: 8,
+        fair: 5,
+        poor: 2
+      };
+
       const { data, error } = await supabase
-        .from('sleep_sessions')
+        .from('sleep_logs')
         .upsert({
           user_id: userId,
           date: today,
-          hours,
-          quality,
-          notes,
+          sleep_efficiency: (hours / 8) * 100, // Derived efficiency
+          quality_score: qualityMap[quality],
+          duration_hours: hours,
+          notes: notes
         })
         .select()
         .single();

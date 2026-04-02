@@ -72,7 +72,7 @@ END $$;
 -- 3. Enter your Google Client ID and Google Client Secret
 --    (Get these from: console.cloud.google.com → APIs & Services → Credentials)
 -- 4. Copy the "Callback URL" shown in Supabase:
---    https://hxrzlgvyvfzobtzxccxa.supabase.co/auth/v1/callback
+--    ENVIRONMENT_CALLBACK_URL (Obfuscated for security)
 -- 5. In Google Cloud Console → OAuth 2.0 Client:
 --    - Add the callback URL above as an "Authorized redirect URI"
 --    - Add your app domains to "Authorized JavaScript origins"

@@ -6,7 +6,7 @@ const client = axios.create({
     baseURL: API_BASE,
     headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'your-api-key-here' // In production, this would be managed via auth
+        'x-api-key': import.meta.env.VITE_API_KEY || ''
     }
 });
 

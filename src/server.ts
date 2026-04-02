@@ -16,21 +16,40 @@ import { supabase } from './services/supabase';
 const app = express();
 const port = config.port;
 
-// Middleware
-app.use(cors());
+// Enhanced CORS Policy
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl) or if origin is whitelisted
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || config.env === 'development') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
 app.use(express.json());
 app.use(morgan('combined', {
     stream: { write: (message) => logger.info(message.trim()) }
 }));
 
 // Security & Rate Limiting
-const limiter = rateLimit({
+const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 100,
     message: { success: false, error: 'Too many requests, please try again later.' }
 });
 
-app.use(limiter);
+const ingestionLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 10, // strict limit for ingestion
+    message: { success: false, error: 'Too much traffic on data ingestion endpoints. Slow down.' }
+});
+
+app.use('/api', globalLimiter);
+app.use('/api/ingestion', ingestionLimiter);
 
 // Routes
 app.use('/api', jwtAuthMiddleware, ingestionRouter);

@@ -41,7 +41,7 @@ CREATE POLICY "Users can update their own progress - update" ON public.video_pro
 -- Triggers for updated_at
 CREATE TRIGGER set_updated_at_video_sessions
 BEFORE UPDATE ON public.video_sessions
-FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 CREATE TRIGGER set_updated_at_video_progress
 BEFORE UPDATE ON public.video_progress

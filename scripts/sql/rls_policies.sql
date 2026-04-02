@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.user_sessions (
 -- Enable RLS on all sensitive tables
 ALTER TABLE public.user_profiles   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mood_entries     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.sleep_sessions   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sleep_logs   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.focus_sessions   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chats            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_sessions    ENABLE ROW LEVEL SECURITY;
@@ -46,7 +46,7 @@ ALTER TABLE public.user_sessions    ENABLE ROW LEVEL SECURITY;
 -- ── STEP 4: Drop old permissive demo policies ────────────────
 DROP POLICY IF EXISTS "Enable all for demo user" ON public.user_profiles;
 DROP POLICY IF EXISTS "Enable all for demo user" ON public.mood_entries;
-DROP POLICY IF EXISTS "Enable all for demo user" ON public.sleep_sessions;
+DROP POLICY IF EXISTS "Enable all for demo user" ON public.sleep_logs;
 DROP POLICY IF EXISTS "Enable all for demo user" ON public.focus_sessions;
 
 -- ============================================================
@@ -81,16 +81,16 @@ CREATE POLICY "mood_delete_own" ON public.mood_entries
 -- ============================================================
 -- SLEEP_SESSIONS
 -- ============================================================
-CREATE POLICY "sleep_select_own" ON public.sleep_sessions
+CREATE POLICY "sleep_select_own" ON public.sleep_logs
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "sleep_insert_own" ON public.sleep_sessions
+CREATE POLICY "sleep_insert_own" ON public.sleep_logs
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "sleep_update_own" ON public.sleep_sessions
+CREATE POLICY "sleep_update_own" ON public.sleep_logs
   FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "sleep_delete_own" ON public.sleep_sessions
+CREATE POLICY "sleep_delete_own" ON public.sleep_logs
   FOR DELETE USING (auth.uid() = user_id);
 
 -- ============================================================
@@ -147,7 +147,7 @@ SELECT
 FROM public.user_profiles p
 LEFT JOIN public.mood_entries  m ON m.user_id = p.id
 LEFT JOIN public.focus_sessions f ON f.user_id = p.id
-LEFT JOIN public.sleep_sessions s ON s.user_id = p.id
+LEFT JOIN public.sleep_logs s ON s.user_id = p.id
 GROUP BY p.organisation_id, p.user_type;
 
 -- Revoke direct table access from the view for added safety
@@ -160,7 +160,7 @@ GRANT SELECT ON public.admin_aggregated_stats TO service_role;
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_mood_entries_user_id       ON public.mood_entries(user_id);
 CREATE INDEX IF NOT EXISTS idx_focus_sessions_user_id     ON public.focus_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_sleep_sessions_user_id     ON public.sleep_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sleep_logs_user_id     ON public.sleep_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id      ON public.user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_chats_user_id              ON public.chats(user_id);
 CREATE INDEX IF NOT EXISTS idx_chats_session_id           ON public.chats(session_id);

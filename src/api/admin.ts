@@ -55,6 +55,7 @@ router.get('/risk-distribution', isAdmin, async (req: Request, res: Response) =>
         const { data: risks } = await supabase
             .from('insights')
             .select('metadata->riskLevel')
+            .eq('user_id', supabase.from('users').select('id').eq('org_id', orgId)) // Filtering by users in this org
             .gte('created_at', new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString());
 
         const distribution = { low: 0, medium: 0, high: 0 };
@@ -84,6 +85,7 @@ router.get('/high-risk-alerts', isAdmin, async (req: Request, res: Response) => 
         const { data: alerts } = await supabase
             .from('insights')
             .select('user_id, type, content, confidence, recommendation, created_at')
+            .eq('user_id', supabase.from('users').select('id').eq('org_id', orgId))
             .filter('metadata->>riskLevel', 'eq', 'high')
             .order('created_at', { ascending: false })
             .limit(20);

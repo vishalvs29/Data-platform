@@ -114,8 +114,10 @@ CREATE TABLE IF NOT EXISTS public.sleep_logs (
   bedtime               TIMESTAMPTZ,
   wake_time             TIMESTAMPTZ,
   quality_score         SMALLINT    CHECK (quality_score BETWEEN 1 AND 10),
-  cbti_protocol_followed BOOLEAN    DEFAULT false,   -- Cognitive Behavioral Therapy for Insomnia
-  sleep_efficiency      NUMERIC(5,2) CHECK (sleep_efficiency BETWEEN 0 AND 100),  -- %
+  duration_hours        NUMERIC(4,2),
+  notes                 TEXT,
+  cbti_protocol_followed BOOLEAN    DEFAULT false,
+  sleep_efficiency      NUMERIC(5,2) CHECK (sleep_efficiency BETWEEN 0 AND 100),
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (user_id, date)
 );

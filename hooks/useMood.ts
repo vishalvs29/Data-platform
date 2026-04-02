@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MoodEntry, MoodType } from '@/types';
 import { moodService } from '@/services/moodService';
+import { getSupabaseClient } from '@/template';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MOOD_STORAGE_KEY = '@mindful_moods';
@@ -20,7 +21,7 @@ export function useMood() {
       if (stored) {
         const parsedMoods: MoodEntry[] = JSON.parse(stored);
         setMoods(parsedMoods);
-        
+
         // Check if there's a mood entry for today
         const today = new Date().setHours(0, 0, 0, 0);
         const todayEntry = parsedMoods.find(m => {
@@ -38,15 +39,22 @@ export function useMood() {
 
   const saveMood = async (mood: MoodType, note?: string) => {
     try {
-      const entry = moodService.saveMoodEntry(mood, note);
-      
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: entry, error } = await moodService.saveMoodEntry(user.id, mood, note);
+
+      if (error || !entry) throw new Error(error || 'Failed to save mood');
+
       // Remove any existing mood entry for today
       const today = new Date().setHours(0, 0, 0, 0);
       const filteredMoods = moods.filter(m => {
         const moodDate = new Date(m.timestamp).setHours(0, 0, 0, 0);
         return moodDate !== today;
       });
-      
+
       const updatedMoods = [entry, ...filteredMoods];
       await AsyncStorage.setItem(MOOD_STORAGE_KEY, JSON.stringify(updatedMoods));
       setMoods(updatedMoods);
