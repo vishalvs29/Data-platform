@@ -1,13 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 import ingestionRouter from './api/ingestion';
 import servingRouter from './api/serving';
 import adminRouter from './api/admin';
 import videoRouter from './api/videos';
 import { initScheduler } from './services/jobs/scheduler';
 import logger from './utils/logger';
+import { jwtAuthMiddleware } from './middleware/auth';
+import { errorHandler } from './middleware/errorHandler';
 import { config } from '../config/app';
+import { supabase } from './services/supabase';
 
 const app = express();
 const port = config.port;
@@ -19,30 +23,40 @@ app.use(morgan('combined', {
     stream: { write: (message) => logger.info(message.trim()) }
 }));
 
-// Auth Middleware
-const apiKeyMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const apiKey = req.headers['x-api-key'];
-    if (apiKey && apiKey === config.apiKey) {
-        next();
-    } else {
-        res.status(403).json({ success: false, error: 'Forbidden: Invalid API Key' });
-    }
-};
+// Security & Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { success: false, error: 'Too many requests, please try again later.' }
+});
+
+app.use(limiter);
 
 // Routes
-app.use('/api', apiKeyMiddleware, ingestionRouter);
-app.use('/api', apiKeyMiddleware, servingRouter);
-app.use('/api/videos', apiKeyMiddleware, videoRouter);
-app.use('/api/admin', adminRouter);
+app.use('/api', jwtAuthMiddleware, ingestionRouter);
+app.use('/api', jwtAuthMiddleware, servingRouter);
+app.use('/api/videos', jwtAuthMiddleware, videoRouter);
+app.use('/api/admin', jwtAuthMiddleware, adminRouter);
 
-// Basic Health Check
-app.get('/health', (req, res) => {
-    res.json({
-        status: 'up',
-        version: '2.0.0',
-        timestamp: new Date().toISOString()
-    });
+// Enhanced Health Check
+app.get('/health', async (req, res) => {
+    try {
+        const { error } = await supabase.from('users').select('id').limit(1);
+        const dbStatus = error ? 'down' : 'up';
+
+        res.json({
+            status: 'ok',
+            database: dbStatus,
+            timestamp: new Date().toISOString(),
+            version: '2.1.0-prod'
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', database: 'down' });
+    }
 });
+
+// Final Error Handling Middleware
+app.use(errorHandler);
 
 // Start Server
 app.listen(port, () => {

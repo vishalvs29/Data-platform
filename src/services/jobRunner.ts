@@ -50,6 +50,6 @@ export const runJob = async (task: () => Promise<void>, options: JobOptions) => 
     if (!success) {
         console.error(`Job ${name} failed after ${maxRetries + 1} attempts.`);
     } else {
-        console.log(`Job ${name} completed successfully in ${executionTime}ms.`);
+        logger.info(`Job ${name} completed successfully in ${executionTime}ms.`);
     }
 };

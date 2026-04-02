@@ -43,6 +43,26 @@ git clone https://github.com/vishalvs29/Data-platform.git
 npm install
 ```
 
+### 🛡️ Production & Security Architecture
+DrMindit is built with an enterprise-first approach to security and reliability:
+
+- **Identity Management**: Uses Supabase Auth for high-security JWT-based authentication.
+- **API Protection**:
+    - **Rate Limiting**: Integrated `express-rate-limit` to prevent brute-force and DoS attacks.
+    - **CORS**: Strict CORS policies to ensure only authorized origins can interact with the API.
+- **Monitoring & Observability**:
+    - **Winston Engine**: Structured JSON logging for all system events and errors.
+    - **Health Monitoring**: Detailed `/health` endpoint tracking database connectivity and system uptime.
+- **Data Integrity**: Centralized error handling middleware ensures consistent, sanitized error responses across all endpoints.
+
+## ✅ Production Checklist
+Before deploying to a production environment:
+1. [ ] Set `NODE_ENV=production` in environment variables.
+2. [ ] Configure `JWT_SECRET` for secure token signing (if using custom signing).
+3. [ ] Set `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW` based on expected traffic.
+4. [ ] Verify all Supabase RLS (Row Level Security) policies are active.
+5. [ ] Ensure Winston is configured to stream logs to a persistent storage service (e.g., CloudWatch, Datadog).
+
 ### Environment Setup
 Copy the example environment file and fill in your credentials:
 ```bash
