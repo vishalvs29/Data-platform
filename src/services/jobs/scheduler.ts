@@ -1,7 +1,8 @@
 import cron from 'node-cron';
-import { runFullAnalyticsPipeline } from '../services/analytics';
-import { runIntelligencePipeline } from '../services/intelligence';
-import { runJob } from '../services/jobRunner';
+import { runFullAnalyticsPipeline } from '../analytics';
+import { runIntelligencePipeline } from '../intelligence';
+import { runJob } from '../jobRunner';
+import logger from '../../utils/logger';
 
 export const initScheduler = () => {
     // 1. Daily Analytics & Metrics Aggregation (2:00 AM)
@@ -16,8 +17,8 @@ export const initScheduler = () => {
 
     // 3. Health check every 6 hours
     cron.schedule('0 */6 * * *', () => {
-        console.log('Background worker health check: OK');
+        logger.info('Background worker health check: OK');
     });
 
-    console.log('Advanced Scheduler initialized (Production-Grade JobRunner enabled)');
+    logger.info('Advanced Scheduler initialized (Production-Grade JobRunner enabled)');
 };

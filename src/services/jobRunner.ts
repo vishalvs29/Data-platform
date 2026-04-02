@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import logger from '../utils/logger';
 
 export interface JobOptions {
     name: string;
@@ -29,7 +30,7 @@ export const runJob = async (task: () => Promise<void>, options: JobOptions) => 
             lastError = error.message || String(error);
             if (attempt <= maxRetries) {
                 const delay = initialDelayMs * Math.pow(2, attempt - 1);
-                console.warn(`Job ${name} failed (attempt ${attempt}/${maxRetries + 1}). Retrying in ${delay}ms...`);
+                logger.warn(`Job ${name} failed (attempt ${attempt}/${maxRetries + 1}). Retrying in ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }

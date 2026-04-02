@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
+import logger from '../utils/logger';
 
 export const runFullAnalyticsPipeline = async () => {
-    console.log('Starting full intelligence pipeline...');
+    logger.info('Starting full intelligence pipeline...');
     const { data: users, error: userError } = await supabase.from('users').select('id');
     if (userError) return;
 
@@ -24,25 +25,33 @@ const updateDailyMetrics = async (userId: string, date: string = new Date().toIS
 
     const avgMood = moodData?.length ? moodData.reduce((acc, m) => acc + m.mood_score, 0) / moodData.length : null;
 
-    // 2. Session Stats
-    const { data: sessions } = await supabase
+    // 2. Session Stats (Voice & Video)
+    const { data: voiceSessions } = await supabase
         .from('user_sessions')
         .select('duration_seconds, completed')
         .eq('user_id', userId)
         .gte('timestamp', date + 'T00:00:00')
         .lt('timestamp', date + 'T23:59:59');
 
-    const sessionCount = sessions?.length || 0;
-    const completedSessions = sessions?.filter(s => s.completed).length || 0;
-    const completionRate = sessionCount ? (completedSessions / sessionCount) * 100 : 0;
-    const activeDuration = sessions?.reduce((acc, s) => acc + s.duration_seconds, 0) || 0;
+    const { data: videoProgress } = await supabase
+        .from('video_progress')
+        .select('id, is_completed')
+        .eq('user_id', userId)
+        .eq('is_completed', true)
+        .gte('updated_at', date + 'T00:00:00')
+        .lt('updated_at', date + 'T23:59:59');
+
+    const totalSessionCount = (voiceSessions?.length || 0) + (videoProgress?.length || 0);
+    const totalCompleted = (voiceSessions?.filter(s => s.completed).length || 0) + (videoProgress?.length || 0);
+    const completionRate = totalSessionCount ? (totalCompleted / totalSessionCount) * 100 : 0;
+    const activeDuration = voiceSessions?.reduce((acc, s) => acc + s.duration_seconds, 0) || 0;
 
     // 3. Upsert into user_daily_metrics
     await supabase.from('user_daily_metrics').upsert({
         user_id: userId,
         date,
         avg_mood: avgMood,
-        session_count: sessionCount,
+        session_count: totalSessionCount,
         completion_rate: completionRate,
         active_duration: activeDuration,
         updated_at: new Date().toISOString()
