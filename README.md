@@ -1,5 +1,31 @@
 # DrMindit Data Platform 🧠
 
+A production-grade, secure, and intelligent mental wellness platform for organizations.
+
+## 📸 Application Screens
+
+### Home & Discovery
+![Home](docs/screens/home.png)
+*Vibrant, glassmorphic core landing page with 21-day program tracking.*
+
+### Session Player
+![Session](docs/screens/session.png)
+*Premium audio player with real-time progress and mood check-ins.*
+
+### AI Mindset Assistant
+![Chat](docs/screens/chat.png)
+*Intelligent AI companion for mental health support and guidance.*
+
+### Organizational Analytics
+![Dashboard](docs/screens/dashboard.png)
+*Data-rich dashboard for organizational health monitoring and risk detection.*
+
+### Personal Wellness
+![Wellness](docs/screens/wellness.png)
+*Detailed personal mood trends and AI-driven wellness insights.*
+
+---
+
 A professional, production-grade intelligence engine designed for mental health analytics. This platform transforms raw behavioral data into actionable, personalized insights through multi-factor correlation and adaptive baselines.
 
 ## 📸 Screenshots
